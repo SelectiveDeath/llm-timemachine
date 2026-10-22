@@ -5,8 +5,10 @@ workers_dev = true
 preview_urls = false
 
 [vars]
-MODEL = "gpt-5.4-mini"
+MODEL = "gpt-5.4"
 PAST_MODEL = "gpt-3.5-turbo"
+LATEST_MODEL = "gpt-6-sol"
+JUDGE_MODEL = "gpt-5.4-mini"
 ALLOWED_ORIGINS = "https://selectivedeath.github.io, http://localhost:3000"
 ENABLED = "true"
 

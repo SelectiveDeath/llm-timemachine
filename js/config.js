@@ -2,8 +2,10 @@
 
 // 화면에 보여 줄 모델 정보 (실제 호출 모델은 Worker의 MODEL / PAST_MODEL 설정이 정한다)
 export const MODELS = {
-  modern: { id: 'gpt-5.4-mini', year: 2026, desc: '현대 LLM' },
+  modern: { id: 'gpt-5.4', year: 2026, desc: '현대 LLM' },
   past: { id: 'gpt-3.5-turbo', year: 2022, desc: '초기 ChatGPT' },
+  latest: { id: 'gpt-6-sol', year: 2026, desc: '최신 모델 (리포트 마지막에 공개)' },
+  judge: { id: 'gpt-5.4-mini' }, // 미션 출제와 AI 심판
   principle: { id: 'KoGPT2', year: 2021, desc: '1.25억 개 가중치 · 노트북에서 실행' },
 };
 

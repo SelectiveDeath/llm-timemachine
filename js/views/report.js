@@ -1,7 +1,8 @@
 // ⚖️ 오늘의 타임머신 리포트 (활동 4)
 // 오늘 던진 질문을 모아, 비어 있는 쪽 모델에도 똑같이 물어보고 나란히 비교한다.
 //  - 미션에서 현대 LLM에게 했던 질문 → 과거 LLM(gpt-3.5-turbo)에게도
-//  - 과거 LLM에게 했던 질문 → 현대 LLM(gpt-5.4-mini)에게도
+//  - 과거 LLM에게 했던 질문 → 현대 LLM(gpt-5.4)에게도
+// 마지막에 "🚀 최신 모델 공개"를 누르면 같은 질문을 최신 모델(gpt-6-sol)에게도 물어 세 번째 칸에 보여 준다.
 import { store, uid, getMissionStats, missionMessages, questionBefore } from '../store.js';
 import { h, add, clear, markdown, confirmDialog, toast, short } from '../ui.js';
 import { chat, ChatError } from '../modern-llm.js';
@@ -12,6 +13,7 @@ const SOURCE_LABEL = { round1: '미션 1라운드', round2: '미션 2라운드',
 const TAG_LABEL = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
 const PAST_LABEL = `📼 ${MODELS.past.id} · ${MODELS.past.year}`;
 const MODERN_LABEL = `✨ ${MODELS.modern.id} · ${MODELS.modern.year}`;
+const LATEST_LABEL = `🚀 ${MODELS.latest.id} · 최신`;
 
 let host = null; // 화면에 붙어 있을 때만 다시 그린다
 let running = false;
@@ -29,7 +31,13 @@ export function unmount() {
 }
 
 const items = () => store.state.report.items;
-const pendingItems = () => items().filter((it) => (it.oldAnswer == null && !it.oldError) || (it.modernAnswer == null && !it.modernError));
+const revealed = () => !!store.state.report.latestRevealed;
+const needs = (it) => ({
+  past: it.oldAnswer == null && !it.oldError,
+  modern: it.modernAnswer == null && !it.modernError,
+  latest: revealed() && it.latestAnswer == null && !it.latestError,
+});
+const pendingItems = () => items().filter((it) => Object.values(needs(it)).some(Boolean));
 
 // ── 후보 모으기 ─────────────────────────────
 
@@ -73,9 +81,9 @@ function candidates() {
 function toItem(c, prev) {
   return {
     id: prev?.id ?? uid(), ref: c.ref, source: c.source, question: c.question, mission: c.mission ?? null,
-    oldAnswer: prev?.oldAnswer ?? c.oldAnswer, modernAnswer: prev?.modernAnswer ?? c.modernAnswer,
+    oldAnswer: prev?.oldAnswer ?? c.oldAnswer, modernAnswer: prev?.modernAnswer ?? c.modernAnswer, latestAnswer: prev?.latestAnswer ?? null,
     success: c.success, tags: c.tags, best: c.best,
-    memo: prev?.memo ?? '', present: prev?.present ?? false, oldError: null, modernError: null,
+    memo: prev?.memo ?? '', present: prev?.present ?? false, oldError: null, modernError: null, latestError: null,
   };
 }
 
@@ -107,10 +115,8 @@ async function run() {
   progress = { done: 0, total: todo.length };
   render();
   for (const it of todo) {
-    await Promise.all([
-      it.oldAnswer == null && !it.oldError ? fill(it.id, 'past') : null,
-      it.modernAnswer == null && !it.modernError ? fill(it.id, 'modern') : null,
-    ]);
+    const n = needs(it);
+    await Promise.all([n.past && fill(it.id, 'past'), n.modern && fill(it.id, 'modern'), n.latest && fill(it.id, 'latest')]);
     progress.done++;
     render();
   }
@@ -128,7 +134,7 @@ const patch = (id, p) => store.update((s) => {
 async function fill(id, era) {
   const it = items().find((x) => x.id === id);
   if (!it) return;
-  const [answerKey, errorKey] = era === 'past' ? ['oldAnswer', 'oldError'] : ['modernAnswer', 'modernError'];
+  const [answerKey, errorKey] = { past: ['oldAnswer', 'oldError'], modern: ['modernAnswer', 'modernError'], latest: ['latestAnswer', 'latestError'] }[era];
   try {
     const answer = await chat([{ role: 'user', content: it.question }], { era });
     patch(id, { [answerKey]: answer || '(빈 답변)', [errorKey]: null });
@@ -138,7 +144,7 @@ async function fill(id, era) {
 }
 
 function retry(id) {
-  patch(id, { oldError: null, modernError: null });
+  patch(id, { oldError: null, modernError: null, latestError: null });
   render();
   if (!running) run();
 }
@@ -159,12 +165,14 @@ function render() {
         h('p', `오늘 던진 질문을 ${MODELS.past.id}(${MODELS.past.year})와 ${MODELS.modern.id}(${MODELS.modern.year})에게 똑같이 물어본 결과`)),
       list.length > 0 && h('div.report-actions',
         h('button.btn', { onclick: build, disabled: running }, '↻ 다시 만들기'),
+        !revealed() && h('button.btn.reveal-btn', { onclick: reveal, disabled: running }, '🚀 최신 모델 공개'),
         h('button.btn.btn-primary', { onclick: present }, '🖥 발표 모드'))));
 
   if (!list.length) page.append(intro());
   else {
+    if (revealed()) page.append(h('div.card.reveal-banner', '🚀 ', h('b', `최신 모델 ${MODELS.latest.id}`), '에게도 똑같이 물어봤어요. 오른쪽 칸을 비교해 보세요. 원리는 여전히 "다음 말 예측"이에요!'));
     if (running) page.append(h('div.card.report-progress',
-      h('div.rp-text', `과거 LLM과 현대 LLM에게 묻는 중... ${progress.done} / ${progress.total}`),
+      h('div.rp-text', `모델들에게 묻는 중... ${progress.done} / ${progress.total}`),
       h('div.rp-bar', h('div.rp-fill', { style: { width: (progress.total ? progress.done / progress.total : 0) * 100 + '%' } }))));
     add(page, summary(), h('div.cmp-list', list.map(compareCard)), moreList());
   }
@@ -216,7 +224,7 @@ function compareCard(it) {
     store.update((s) => { s.report.items = s.report.items.filter((x) => x.id !== it.id); });
     render();
   };
-  return h('article.cmp' + (it.best ? '.best' : ''),
+  return h('article.cmp' + (it.best ? '.best' : '') + (revealed() ? '.three' : ''),
     h('div.cmp-q',
       h('span.tag.blue', SOURCE_LABEL[it.source]),
       it.mission && h('span.tag', '🎯 ', it.mission),
@@ -231,8 +239,19 @@ function compareCard(it) {
       h('div.cmp-new',
         h('div.cmp-label', MODERN_LABEL),
         sideBody(it.modernAnswer, it.modernError, it.id),
-        it.success != null && h('div.cmp-tags', h('span.tag' + (it.success ? '.old' : '.new'), it.success ? '😈 미션 성공 (속았다)' : '🤖 미션 실패 (안 속았다)')))),
+        it.success != null && h('div.cmp-tags', h('span.tag' + (it.success ? '.old' : '.new'), it.success ? '😈 미션 성공 (속았다)' : '🤖 미션 실패 (안 속았다)'))),
+      revealed() && h('div.cmp-latest', h('div.cmp-label', LATEST_LABEL), sideBody(it.latestAnswer, it.latestError, it.id))),
     memo);
+}
+
+// 마지막 깜짝 공개: 같은 질문을 최신 모델에게도
+async function reveal() {
+  if (running) return;
+  const ok = await confirmDialog(`마지막으로, 가장 최신 모델 ${MODELS.latest.id}에게도 같은 질문을 해 볼까요?`, { ok: '🚀 공개하기' });
+  if (!ok) return;
+  store.update((s) => { s.report.latestRevealed = true; });
+  render();
+  run();
 }
 
 function sideBody(answer, error, id) {
@@ -276,9 +295,10 @@ function present() {
     counter.textContent = `${i + 1} / ${slides.length}`;
     add(clear(stage),
       h('div.present-q', h('span.tag.blue', SOURCE_LABEL[it.source]), h('h2', it.question)),
-      h('div.present-grid',
+      h('div.present-grid' + (revealed() ? '.three' : ''),
         h('div.cmp-old', h('div.cmp-label', PAST_LABEL), h('div.cmp-text.md', { html: markdown(it.oldAnswer ?? '…') })),
-        h('div.cmp-new', h('div.cmp-label', MODERN_LABEL), h('div.cmp-text.md', { html: markdown(it.modernAnswer ?? '…') }))),
+        h('div.cmp-new', h('div.cmp-label', MODERN_LABEL), h('div.cmp-text.md', { html: markdown(it.modernAnswer ?? '…') })),
+        revealed() && h('div.cmp-latest', h('div.cmp-label', LATEST_LABEL), h('div.cmp-text.md', { html: markdown(it.latestAnswer ?? '…') }))),
       it.memo && h('div.present-memo', '💬 ', it.memo));
   }
   function go(d) { i = (i + d + slides.length) % slides.length; show(); }

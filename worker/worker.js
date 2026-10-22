@@ -2,15 +2,17 @@
 // 학생 브라우저 → 이 Worker → OpenAI. OpenAI 키는 Worker 비밀값(OPENAI_API_KEY)에만 있다.
 //
 // 설정값 (wrangler.toml [vars] 또는 Cloudflare 대시보드)
-//  - MODEL:           현대 LLM (기본 gpt-5.4-mini). 미션 생성과 심판도 이 모델을 쓴다
+//  - MODEL:           현대 LLM, 학생이 미션에서 대화하는 모델 (기본 gpt-5.4)
 //  - PAST_MODEL:      과거 LLM (기본 gpt-3.5-turbo)
+//  - LATEST_MODEL:    리포트 마지막에 공개하는 최신 모델 (기본 gpt-6-sol)
+//  - JUDGE_MODEL:     미션 출제와 AI 심판 (기본 gpt-5.4-mini, 확률(logprobs)을 주고 빨라야 함)
 //  - ALLOWED_ORIGINS: 요청을 받을 사이트 주소, 쉼표로 구분
 //  - ENABLED:         "false"로 바꾸면 모든 요청 거절 (수업 후 끄기용)
 // 비밀값
 //  - OPENAI_API_KEY
 //
 // 요청 종류
-//  - { messages: [...], era: 'modern'|'past' }           → 채팅 (스트리밍)
+//  - { messages: [...], era: 'modern'|'past'|'latest' }  → 채팅 (스트리밍)
 //  - { judge: { goal, messages, facts } }                → 미션 판정 { success: 0~1 }
 //  - { mission: { round, category, avoid } }             → 미션 생성 { mission | null }
 
@@ -45,12 +47,14 @@ export default {
       return json({ error: '요청 형식이 올바르지 않아요.' }, 400, cors);
     }
 
-    const modern = env.MODEL || 'gpt-5.4-mini';
-    if (body?.judge) return handleJudge(body.judge, modern, env, cors);
-    if (body?.mission) return handleMission(body.mission, modern, env, cors);
+    const judgeModel = env.JUDGE_MODEL || 'gpt-5.4-mini';
+    if (body?.judge) return handleJudge(body.judge, judgeModel, env, cors);
+    if (body?.mission) return handleMission(body.mission, judgeModel, env, cors);
 
     // 채팅: 사이트가 보내는 형식만 통과 [{ role: 'user'|'assistant', content: string }]
-    const model = body?.era === 'past' ? env.PAST_MODEL || 'gpt-3.5-turbo' : modern;
+    const models = { modern: env.MODEL || 'gpt-5.4', past: env.PAST_MODEL || 'gpt-3.5-turbo', latest: env.LATEST_MODEL || 'gpt-6-sol' };
+    const era = body?.era in models ? body.era : 'modern';
+    const model = models[era];
     const messages = Array.isArray(body?.messages) ? body.messages : null;
     if (!messages?.length || messages.length > LIMITS.maxMessages) return json({ error: '메시지 수가 올바르지 않아요.' }, 400, cors);
     let total = 0;
@@ -65,7 +69,8 @@ export default {
       model,
       messages: messages.map(({ role, content }) => ({ role, content })),
       // gpt-3.5-turbo 같은 예전 모델은 max_completion_tokens 대신 max_tokens를 쓴다
-      ...(model.startsWith('gpt-3') ? { max_tokens: LIMITS.maxCompletionTokens } : { max_completion_tokens: LIMITS.maxCompletionTokens }),
+      // 최신 모델은 답하기 전에 생각(추론)하는 토큰도 이 한도에 포함되므로 넉넉하게
+      ...(model.startsWith('gpt-3') ? { max_tokens: LIMITS.maxCompletionTokens } : { max_completion_tokens: era === 'latest' ? 2000 : LIMITS.maxCompletionTokens }),
       stream: true,
     });
     if (!upstream.ok) return upstreamError(upstream, cors);

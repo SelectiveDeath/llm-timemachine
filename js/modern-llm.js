@@ -53,7 +53,7 @@ async function post(workerBody, directBody, { signal, timeout = 60000 } = {}) {
   return res;
 }
 
-// 채팅. era: 'modern'(현대) | 'past'(과거). onToken(조각)으로 실시간 전달하고, 끝나면 전체 답변을 돌려준다.
+// 채팅. era: 'modern'(현대) | 'past'(과거) | 'latest'(최신). onToken(조각)으로 실시간 전달하고, 끝나면 전체 답변을 돌려준다.
 export async function chat(messages, { era = 'modern', onToken, signal } = {}) {
   if (currentMode() === 'mock') return mockReply(messages, { era, onToken, signal });
   const res = await post({ messages, era }, { model: MODELS[era].id, messages, stream: true }, { signal });
@@ -68,7 +68,7 @@ export async function judge({ goal, messages, facts }) {
     ...(facts ? { facts } : {}),
   };
   if (currentMode() === 'mock') return mockJudge(payload);
-  const res = await post({ judge: payload }, judgeRequest(MODELS.modern.id, payload), { timeout: 30000 });
+  const res = await post({ judge: payload }, judgeRequest(MODELS.judge.id, payload), { timeout: 30000 });
   const data = await res.json();
   const success = currentMode() === 'direct' ? parseJudge(data) : data.success;
   if (typeof success !== 'number') throw new ChatError('판정 결과를 읽지 못했어요.');
@@ -79,7 +79,7 @@ export async function judge({ goal, messages, facts }) {
 export async function generateMission({ round, category, avoid }) {
   if (currentMode() === 'mock') return null;
   try {
-    const res = await post({ mission: { round, category, avoid } }, missionRequest(MODELS.modern.id, { round, category, avoid }), { timeout: 20000 });
+    const res = await post({ mission: { round, category, avoid } }, missionRequest(MODELS.judge.id, { round, category, avoid }), { timeout: 20000 });
     const data = await res.json();
     return currentMode() === 'direct' ? parseMission(data, { round, category }) : data.mission;
   } catch {

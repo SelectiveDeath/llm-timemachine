@@ -28,6 +28,7 @@ const fresh = () => ({
     //   tags, best, success, memo, present, oldError, modernError }
     items: [],
     generatedAt: null,
+    latestRevealed: false, // 🚀 최신 모델 공개를 눌렀는지
   },
 });
 
