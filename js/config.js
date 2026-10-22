@@ -8,3 +8,19 @@ export const OLD_MODEL = {
   id: 'kogpt2',
   localPath: 'models/',
 };
+
+// 현대 LLM 연결 방식
+//  - mock:   가짜 답변 (개발·연습용, 비용 0)
+//  - direct: 개발자 PC에서만. 주소 뒤에 ?dev 를 붙이면 키 입력창이 나온다 (키는 그 브라우저에만 저장)
+//  - worker: 수업용. Cloudflare Worker를 거쳐 OpenAI 호출 (키는 Worker에만 있음)
+export const MODERN = {
+  mode: 'mock',
+  model: '', // 8단계에서 확정. direct 모드에서는 개발자 입력창에서 지정 가능
+  workerUrl: '', // 8단계에서 Worker 주소 입력
+};
+
+// 속이기 2라운드 잠금 해제 코드 (선생님이 슬라이드 12장에서 공개)
+export const ROUND2_CODE = '원리';
+
+// 리포트에 자동으로 넣을 최대 질문 수 (과거 LLM은 학생 노트북에서 돌아서 하나에 몇 초씩 걸림)
+export const REPORT_MAX_ITEMS = 10;
