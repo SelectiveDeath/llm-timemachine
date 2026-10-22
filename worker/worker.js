@@ -10,14 +10,17 @@
 //  - ENABLED:         "false"로 바꾸면 모든 요청 거절 (수업 후 끄기용)
 // 비밀값
 //  - OPENAI_API_KEY
+//  - ADMIN_PASSWORD   관리자 패널(admin.html) 비밀번호
 //
 // 요청 종류
 //  - { messages: [...], era: 'modern'|'past'|'latest' }  → 채팅 (스트리밍)
 //  - { judge: { goal, messages, facts } }                → 미션 판정 { success: 0~1 }
 //  - { mission: { round, category, avoid } }             → 미션 생성 { mission | null }
+//  - { status: {...} } / { admin: {...} }                → 수업 진행 상태 (gate.js)
 
 import { judgeRequest, parseJudge, checkJudgeInput } from '../js/judge.js';
 import { missionRequest, parseMission, ROUND_CATEGORIES } from '../js/missions.js';
+import { handleStatus, handleAdmin } from './gate.js';
 
 const LIMITS = {
   maxMessages: 21, // 사이트는 최근 20개 + 새 질문을 보낸다
@@ -37,8 +40,6 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: allowed.includes(origin) ? 204 : 403, headers: cors });
     if (request.method !== 'POST') return json({ error: 'POST만 받아요.' }, 405, cors);
     if (!allowed.includes(origin)) return json({ error: '허용되지 않은 사이트에서 온 요청이에요.' }, 403, cors);
-    if (env.ENABLED === 'false') return json({ error: '지금은 수업 시간이 아니에요.' }, 503, cors);
-    if (!env.OPENAI_API_KEY) return json({ error: '서버에 OpenAI 키가 설정되지 않았어요.' }, 500, cors);
 
     let body;
     try {
@@ -46,6 +47,13 @@ export default {
     } catch {
       return json({ error: '요청 형식이 올바르지 않아요.' }, 400, cors);
     }
+
+    // 수업 진행 상태는 수업 시간이 아니어도 확인할 수 있게 (관리자가 미리 준비할 수 있도록)
+    if (body?.status) { const r = await handleStatus(body.status, env); return json(r.body, r.status, cors); }
+    if (body?.admin) { const r = await handleAdmin(body.admin, env); return json(r.body, r.status, cors); }
+
+    if (env.ENABLED === 'false') return json({ error: '지금은 수업 시간이 아니에요.' }, 503, cors);
+    if (!env.OPENAI_API_KEY) return json({ error: '서버에 OpenAI 키가 설정되지 않았어요.' }, 500, cors);
 
     const judgeModel = env.JUDGE_MODEL || 'gpt-5.4-mini';
     if (body?.judge) return handleJudge(body.judge, judgeModel, env, cors);

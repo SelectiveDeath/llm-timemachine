@@ -8,7 +8,8 @@ const fresh = () => ({
   version: VERSION,
   team: null,
   view: 'modern',
-  round: 1,
+  round: 1, // 속이기 라운드. 선생님이 4단계(2라운드)를 열면 2
+  gate: { step: 0, session: null }, // 마지막으로 확인한 수업 단계 (gate.js)
   modern: {
     conv: 1, // 미션 하나 = 대화 하나
     // { id, conv, round, role: 'user'|'assistant', content, ts, pending?, error?, judge?: 0~1, judgeError? }
@@ -28,7 +29,6 @@ const fresh = () => ({
     //   tags, best, success, memo, present, oldError, modernError }
     items: [],
     generatedAt: null,
-    latestRevealed: false, // 🚀 최신 모델 공개를 눌렀는지
   },
 });
 
@@ -43,6 +43,7 @@ function migrate(data) {
     modern: { ...base.modern, ...data.modern },
     past: { ...base.past, ...data.past },
     principle: { ...base.principle, ...data.principle },
+    gate: { ...base.gate, ...data.gate },
     report: { ...base.report, ...data.report },
   };
 }
@@ -84,12 +85,18 @@ export const store = {
     listeners.add(fn);
     return () => listeners.delete(fn);
   },
+  // 이 노트북의 기록 초기화 (조 이름과 수업 단계는 유지)
   reset() {
-    const team = state.team;
+    const { team, gate } = state;
     state = fresh();
-    state.team = team;
+    Object.assign(state, { team, gate });
     save();
     for (const l of listeners) l(state);
+  },
+  // 새 수업: 조 이름까지 모두 지운다
+  wipe() {
+    state = fresh();
+    save();
   },
 };
 

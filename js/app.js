@@ -1,9 +1,10 @@
-// 앱 시작점: 조 이름 입력, 사이드바, 화면 전환
-import { store } from './store.js';
+// 앱 시작점: 조 이름 입력, "오늘의 순서" 사이드바, 단계 잠금, 화면 전환
+import { store, getScore } from './store.js';
 import { h, clear, confirmDialog, promptDialog, toast } from './ui.js';
 import { kogpt2 } from './kogpt2.js';
 import { currentMode, isDev, getDevSettings, setDevSettings } from './modern-llm.js';
 import { MODELS } from './config.js';
+import { gate, STEPS, viewStep } from './gate.js';
 import * as modernView from './views/modern.js';
 import * as principleView from './views/principle.js';
 import * as pastView from './views/past.js';
@@ -11,19 +12,17 @@ import * as reportView from './views/report.js';
 import * as dexView from './views/dex.js';
 import * as resultsView from './views/results.js';
 
+const VIEWS = { modern: modernView, principle: principleView, past: pastView, report: reportView, dex: dexView, results: resultsView };
 const tag = (m) => `${m.id} · ${m.year}`;
-const VIEWS = {
-  modern: { icon: '✨', label: '현대 LLM', sub: tag(MODELS.modern), view: modernView },
-  principle: { icon: '🧩', label: '원리 체험', sub: tag(MODELS.principle), view: principleView },
-  past: { icon: '📼', label: '과거 LLM', sub: tag(MODELS.past), view: pastView },
-  report: { icon: '⚖️', label: '비교 리포트', sub: '과거 vs 현대', view: reportView },
-  dex: { icon: '🃏', label: '환각 도감', view: dexView },
-  results: { icon: '🏆', label: '미션 결과', view: resultsView },
+// 사이드바 단계 밑에 보여 줄 모델 (깜짝 공개 모델은 열리기 전까지 숨김)
+const STEP_SUB = {
+  1: tag(MODELS.modern), 2: tag(MODELS.principle), 3: tag(MODELS.past), 4: tag(MODELS.modern),
+  5: `${MODELS.past.id} vs ${MODELS.modern.id}`, 6: () => (gate.step >= 6 ? MODELS.latest.id : '???'),
 };
 
 const app = document.getElementById('app');
-let current = null; // { name, view }
-let main;
+let current = null; // { name, view, locked }
+let main, stepsNav;
 
 if (!store.state.team) showOnboarding();
 else start();
@@ -52,40 +51,97 @@ function showOnboarding() {
 
 function start() {
   main = h('main.main');
-  const sidebar = buildSidebar();
-  clear(app).append(h('div.layout', sidebar, main));
+  clear(app).append(h('div.layout', buildSidebar(), main));
+  syncRound();
   window.addEventListener('hashchange', route);
   route();
 
+  gate.subscribe(onGate);
+  gate.start(summary);
   // 원리 체험용 KoGPT2는 미리 받아 둔다 (파트 1.5 전에 다운로드가 끝나 있도록)
   kogpt2.load().catch(() => {});
+}
+
+// 관리자 패널에 보낼 조 현황 (대화 내용은 보내지 않음)
+function summary() {
+  const s = store.state;
+  return {
+    r1: getScore(1).team, r2: getScore(2).team,
+    missions: s.modern.missions.filter((m) => m.status === 'success' || m.status === 'fail').length,
+    wins: s.modern.missions.filter((m) => m.status === 'success').length,
+    past: s.past.messages.filter((m) => m.role === 'user').length,
+    report: s.report.items.length,
+  };
+}
+
+// 선생님이 단계를 바꿨을 때
+function onGate({ step, prevStep }) {
+  renderSteps();
+  syncRound();
+  if (step > prevStep) {
+    const opened = STEPS.find((s) => s.n === step);
+    if (opened) toast(`${opened.icon} ${opened.label}이(가) 열렸어요!`, 3500);
+  }
+  // 보고 있던 화면의 잠금 상태가 바뀌었거나 라운드가 바뀌었으면 다시 그린다
+  if (current && (current.locked !== !gate.isOpen(current.name) || current.round !== store.state.round)) {
+    const name = current.name;
+    current.view.unmount?.();
+    current = null;
+    show(name);
+  }
+}
+
+// 2라운드(4단계)가 열리면 라운드를 2로. 진행 중이던 1라운드 미션은 점수 없이 취소
+function syncRound() {
+  const round = gate.step >= 4 ? 2 : 1;
+  if (store.state.round === round) return;
+  store.update((s) => {
+    if (round === 2) for (const m of s.modern.missions) if (m.round === 1 && m.status === 'active') m.status = 'cancel';
+    s.round = round;
+  });
 }
 
 function route() {
   let name = location.hash.replace(/^#\/?/, '');
   if (!VIEWS[name]) {
-    name = VIEWS[store.state.view] ? store.state.view : 'modern';
+    // 주소에 화면이 없으면: 마지막으로 보던 화면, 잠겨 있으면 지금 단계의 화면
+    const last = store.state.view;
+    const now = STEPS.find((s) => s.n === Math.max(1, Math.min(gate.step, 5)));
+    name = VIEWS[last] && gate.isOpen(last) ? last : now.view;
     history.replaceState(null, '', '#/' + name);
   }
   if (current?.name === name) return;
+  show(name);
+}
+
+function show(name) {
   current?.view.unmount?.();
   store.update((s) => { s.view = name; }, { silent: true });
   clear(main);
-  main.className = 'main view-' + name;
-  current = { name, view: VIEWS[name].view };
-  current.view.mount(main);
-  for (const a of document.querySelectorAll('.nav-item')) a.classList.toggle('active', a.dataset.view === name);
+  const locked = !gate.isOpen(name);
+  main.className = 'main view-' + (locked ? 'locked' : name);
+  current = { name, view: locked ? lockView : VIEWS[name], locked, round: store.state.round };
+  current.view.mount(main, name);
+  renderSteps();
   document.body.classList.remove('nav-open');
 }
 
-function buildSidebar() {
-  const navItem = (name) => {
-    const v = VIEWS[name];
-    return h('a.nav-item', { href: '#/' + name, 'data-view': name },
-      h('span.nav-icon', v.icon),
-      h('span.nav-text', h('span.nav-label', v.label), v.sub && h('span.nav-sub', v.sub)));
-  };
+// 잠긴 화면
+const lockView = {
+  mount(el, name) {
+    const need = STEPS.find((s) => s.n === viewStep(name));
+    const now = STEPS.find((s) => s.n === gate.step);
+    el.append(h('div.lock-screen',
+      h('div.lock-icon', gate.step === 0 ? '⏳' : '🔒'),
+      gate.step === 0
+        ? [h('h1', '곧 수업이 시작돼요'), h('p', '선생님이 첫 활동을 열면 자동으로 시작해요. 이 화면을 켜 둔 채로 기다려 주세요.')]
+        : [h('h1', `${need.icon} ${need.label}은(는) 아직 잠겨 있어요`), h('p', '선생님이 열어 줄 때까지 기다려 주세요. 열리면 자동으로 바뀌어요.')],
+      now && h('a.btn.btn-primary', { href: '#/' + now.view }, `지금 할 것: ${now.icon} ${now.label} →`),
+      !gate.online && h('p.lock-offline', '⚠️ 서버와 연결이 잠시 끊겼어요. 인터넷 연결을 확인해 주세요.')));
+  },
+};
 
+function buildSidebar() {
   const teamBtn = h('button.team', { title: '조 이름 바꾸기', onclick: renameTeam });
   const renderTeam = () => { teamBtn.replaceChildren(h('span.team-dot'), store.state.team); };
   renderTeam();
@@ -105,23 +161,56 @@ function buildSidebar() {
   const mode = currentMode();
   const modernStatus = mode === 'worker' ? null : h('div.status-line',
     h('span.status-dot.' + (mode === 'mock' ? 'idle' : 'ready')),
-    mode === 'mock' ? 'GPT · 연습 모드(가짜 답변)' : 'GPT · 개발 모드');
+    mode === 'mock' ? 'GPT · 연습 모드(가짜 답변, 단계 잠금 없음)' : 'GPT · 개발 모드');
 
+  stepsNav = h('nav.nav.steps');
   const toggle = h('button.nav-toggle', { 'aria-label': '메뉴', onclick: () => document.body.classList.toggle('nav-open') }, '☰');
 
   return h('aside.sidebar',
     toggle,
     h('div.brand', h('span.brand-icon', '⏳'), h('span', 'LLM 타임머신')),
+    h('div.nav-title', '오늘의 순서'),
+    stepsNav,
+    h('div.nav-divider'),
     h('nav.nav',
-      ['modern', 'principle', 'past', 'report'].map(navItem),
-      h('div.nav-divider'),
-      ['dex', 'results'].map(navItem)),
+      extraItem('dex', '🃏', '환각 도감'),
+      extraItem('results', '🏆', '미션 결과')),
     h('div.sidebar-foot',
       oldStatus,
       modernStatus,
       isDev && h('button.link-btn', { onclick: devSettings }, '⚙ 개발 설정'),
       teamBtn,
       h('button.link-btn.danger', { onclick: resetAll }, '기록 초기화')));
+}
+
+function extraItem(view, icon, label) {
+  return h('a.nav-item.extra', { href: '#/' + view, 'data-view': view }, h('span.nav-icon', icon), h('span.nav-text', h('span.nav-label', label)));
+}
+
+// "오늘의 순서" 목록: ✅ 끝난 단계, ▶ 지금 단계, 🔒 잠긴 단계
+function renderSteps() {
+  if (!stepsNav) return;
+  const step = gate.step;
+  const view = current?.name;
+  // 같은 화면을 쓰는 단계가 여럿이면(미션 1·2라운드, 리포트·공개) 열린 것 중 마지막을 강조
+  const activeN = STEPS.filter((s) => s.view === view && s.n <= Math.max(step, 1)).pop()?.n;
+  clear(stepsNav).append(...STEPS.map((s) => {
+    const state = s.n < step ? 'done' : s.n === step ? 'now' : 'locked';
+    const sub = typeof STEP_SUB[s.n] === 'function' ? STEP_SUB[s.n]() : STEP_SUB[s.n];
+    return h('a.nav-item.step.' + state + (s.n === activeN && !current?.locked ? '.active' : ''), {
+      href: '#/' + s.view,
+      onclick: (e) => {
+        if (state !== 'locked') return;
+        e.preventDefault();
+        toast(`🔒 ${s.label}은(는) 선생님이 열어 줄 때까지 기다려요`);
+      },
+    },
+    h('span.step-num', state === 'done' ? '✓' : s.n),
+    h('span.nav-text', h('span.nav-label', s.icon, ' ', s.label), h('span.nav-sub', sub)),
+    state === 'now' && h('span.step-now', '지금'),
+    state === 'locked' && h('span.step-lock', '🔒'));
+  }));
+  for (const a of document.querySelectorAll('.nav-item.extra')) a.classList.toggle('active', a.dataset.view === view);
 }
 
 async function renameTeam() {
@@ -138,6 +227,7 @@ async function resetAll() {
   current?.view.unmount?.();
   current = null;
   store.reset();
+  syncRound();
   route();
   toast('기록을 모두 지웠어요.');
 }

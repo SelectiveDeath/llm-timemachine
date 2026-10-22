@@ -45,6 +45,7 @@ export function markdown(text) {
 }
 
 export function toast(message, ms = 2400) {
+  for (const old of document.querySelectorAll('.toast')) old.remove(); // 겹치지 않게 이전 알림은 지운다
   const el = h('div.toast', message);
   document.body.append(el);
   requestAnimationFrame(() => el.classList.add('show'));

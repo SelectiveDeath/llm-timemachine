@@ -14,3 +14,9 @@ ENABLED = "true"
 
 # OpenAI 키는 여기에 쓰지 않는다. 아래 명령으로 비밀값으로 넣는다.
 #   npx wrangler secret put OPENAI_API_KEY
+
+# 수업 진행 상태(현재 단계)와 조별 현황을 모든 노트북이 공유하는 데이터베이스
+[[d1_databases]]
+binding = "DB"
+database_name = "llm-timemachine"
+database_id = "e8cc06ee-686c-47a5-8266-2434537f68d3"

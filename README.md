@@ -21,11 +21,20 @@ OpenAI 호출은 모두 Cloudflare Worker(`worker/worker.js`)를 거칩니다. �
 
 ## 자주 바꾸는 설정 (`js/config.js`)
 
-- `ROUND2_CODE`: 2라운드 잠금 해제 코드 (기본 `원리`)
 - `MODERN.mode`: `mock`(가짜 답변) / `worker`(수업용). 주소 뒤에 `?mock`을 붙이면 잠깐 가짜 답변 모드로 볼 수 있음
 - `REPORT_MAX_ITEMS`: 리포트에 자동으로 넣을 질문 수
 
 문구는 각 화면 파일(`js/views/*.js`)에 그대로 적혀 있으니 찾아서 고치면 됩니다.
+
+## 수업 진행 (관리자 패널)
+
+- 주소: https://selectivedeath.github.io/llm-timemachine/admin.html (학생 사이트에는 링크가 없음)
+- 비밀번호는 Worker 비밀값 `ADMIN_PASSWORD` (바꾸려면 `cd worker && npx wrangler@4.127.1 secret put ADMIN_PASSWORD`)
+- 학생 사이트의 "오늘의 순서"는 ① 속이기 미션 1라운드 ② 원리 체험 ③ 과거 LLM ④ 속이기 미션 2라운드 ⑤ 비교 리포트 ⑥ 최신 모델 공개. 관리자 패널에서 연 단계까지만 쓸 수 있고, 나머지는 🔒
+- 학생 노트북은 4초마다 단계를 확인하고, 12초마다 조 현황(화면, 점수 요약)을 보냄. 대화 내용은 보내지 않음
+- "새 수업 시작"을 누르면 모든 단계가 잠기고 학생 노트북의 기록(조 이름 포함)이 지워짐 → 리허설 뒤에 사용
+- 상태는 Cloudflare D1 데이터베이스 `llm-timemachine`에 저장 (`worker/schema/schema.sql`)
+- 주소 뒤에 `?mock`을 붙이면 가짜 답변 + 모든 단계 열림 (연습·개발용)
 
 ## 로컬에서 실행
 

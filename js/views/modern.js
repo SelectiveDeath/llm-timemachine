@@ -2,9 +2,9 @@
 // 게임 마스터 AI가 미션을 내고, 학생은 질문 5번 안에 현대 LLM이 미션 목표대로 "속은 답"을 하게 만들어야 한다.
 // 답마다 AI 심판이 성공 확률을 판정한다.
 import { store, uid, getScore, activeMission, missionMessages, missionTries } from '../store.js';
-import { h, add, clear, markdown, promptDialog, confirmDialog, toast } from '../ui.js';
+import { h, add, clear, markdown, confirmDialog, toast } from '../ui.js';
 import { judge, generateMission } from '../modern-llm.js';
-import { ROUND2_CODE, MODELS } from '../config.js';
+import { MODELS } from '../config.js';
 import { countText, calc, factsFor } from '../checker.js';
 import { MISSION_TRIES, CATEGORIES, ROUND_CATEGORIES, pickFromPool } from '../missions.js';
 import { buildComposer, userBubble, assistantShell, streamReply, scrollToBottom } from './chat-common.js';
@@ -96,14 +96,12 @@ function renderScore() {
   if (!scoreEl) return;
   const round = s().round;
   const { team, ai } = getScore(round);
-  clear(scoreEl).append(
+  add(clear(scoreEl),
     h('div.scoreboard', { title: `${round}라운드 점수: 성공한 미션의 별 개수 합 vs 실패한 미션 수` },
       h('span.score-side.team', h('span.score-name', s().team), h('b', team), h('small', '점')),
       h('span.score-colon', ':'),
       h('span.score-side.ai', h('b', ai), h('small', '승'), h('span.score-name', 'AI 🤖'))),
-    round === 1
-      ? h('button.btn.btn-sm.lock-btn', { onclick: unlockRound2 }, '🔒 2라운드')
-      : h('button.btn.btn-sm', { onclick: () => root.classList.toggle('panel-toggled') }, '🧠 공략·확인기'));
+    round === 2 && h('button.btn.btn-sm', { onclick: () => root.classList.toggle('panel-toggled') }, '🧠 공략·확인기'));
 }
 
 function renderBody() {
@@ -338,23 +336,7 @@ async function runJudge(id) {
 }
 
 // ── 2라운드 ────────────────────────────────
-
-async function unlockRound2() {
-  const code = await promptDialog('2라운드 코드를 입력하세요.\n(선생님이 알려 주실 거예요)', {
-    placeholder: '코드',
-    ok: '2라운드 시작',
-    validate: (v) => (v.replace(/\s/g, '').toLowerCase() === ROUND2_CODE.replace(/\s/g, '').toLowerCase() ? null : '코드가 맞지 않아요.'),
-  });
-  if (code === null) return;
-  controller?.abort();
-  // 1라운드에서 진행 중이던 미션은 점수에 넣지 않고 취소 처리
-  store.update((st) => {
-    for (const m of st.modern.missions) if (m.round === 1 && m.status === 'active') m.status = 'cancel';
-    st.round = 2;
-  });
-  render();
-  toast('🧠 2라운드 시작! 원리로 공략해 보세요');
-}
+// 2라운드는 선생님이 관리자 패널에서 4단계를 열면 시작된다 (app.js syncRound)
 
 // 오른쪽 패널: 공략 카드 + 정답 확인기
 function buildPanel() {

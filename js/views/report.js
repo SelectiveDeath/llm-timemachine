@@ -2,12 +2,13 @@
 // 오늘 던진 질문을 모아, 비어 있는 쪽 모델에도 똑같이 물어보고 나란히 비교한다.
 //  - 미션에서 현대 LLM에게 했던 질문 → 과거 LLM(gpt-3.5-turbo)에게도
 //  - 과거 LLM에게 했던 질문 → 현대 LLM(gpt-5.4)에게도
-// 마지막에 "🚀 최신 모델 공개"를 누르면 같은 질문을 최신 모델(gpt-6-sol)에게도 물어 세 번째 칸에 보여 준다.
+// 선생님이 관리자 패널에서 6단계(🚀 최신 모델 공개)를 열면 같은 질문을 최신 모델(gpt-6-sol)에게도 물어 세 번째 칸에 보여 준다.
 import { store, uid, getMissionStats, missionMessages, questionBefore } from '../store.js';
 import { h, add, clear, markdown, confirmDialog, toast, short } from '../ui.js';
 import { chat, ChatError } from '../modern-llm.js';
 import { REPORT_MAX_ITEMS, MODELS } from '../config.js';
 import { TAGS } from './past.js';
+import { gate } from '../gate.js';
 
 const SOURCE_LABEL = { round1: '미션 1라운드', round2: '미션 2라운드', past: '과거 LLM 질문' };
 const TAG_LABEL = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
@@ -16,6 +17,7 @@ const MODERN_LABEL = `✨ ${MODELS.modern.id} · ${MODELS.modern.year}`;
 const LATEST_LABEL = `🚀 ${MODELS.latest.id} · 최신`;
 
 let host = null; // 화면에 붙어 있을 때만 다시 그린다
+let unsubGate = null;
 let running = false;
 let progress = { done: 0, total: 0 };
 
@@ -24,14 +26,20 @@ export function mount(el) {
   render();
   // 만들다가 새로고침했거나 다른 화면에 갔다 오면 이어서 진행
   if (!running && pendingItems().length) run();
+  // 최신 모델 공개 단계가 열리면 바로 묻기 시작
+  unsubGate = gate.subscribe(() => {
+    render();
+    if (!running && pendingItems().length) run();
+  });
 }
 
 export function unmount() {
   host = null; // 진행 중인 작업은 백그라운드에서 계속되고 기록에 저장된다
+  unsubGate?.();
 }
 
 const items = () => store.state.report.items;
-const revealed = () => !!store.state.report.latestRevealed;
+const revealed = () => gate.step >= 6;
 const needs = (it) => ({
   past: it.oldAnswer == null && !it.oldError,
   modern: it.modernAnswer == null && !it.modernError,
@@ -165,7 +173,6 @@ function render() {
         h('p', `오늘 던진 질문을 ${MODELS.past.id}(${MODELS.past.year})와 ${MODELS.modern.id}(${MODELS.modern.year})에게 똑같이 물어본 결과`)),
       list.length > 0 && h('div.report-actions',
         h('button.btn', { onclick: build, disabled: running }, '↻ 다시 만들기'),
-        !revealed() && h('button.btn.reveal-btn', { onclick: reveal, disabled: running }, '🚀 최신 모델 공개'),
         h('button.btn.btn-primary', { onclick: present }, '🖥 발표 모드'))));
 
   if (!list.length) page.append(intro());
@@ -242,16 +249,6 @@ function compareCard(it) {
         it.success != null && h('div.cmp-tags', h('span.tag' + (it.success ? '.old' : '.new'), it.success ? '😈 미션 성공 (속았다)' : '🤖 미션 실패 (안 속았다)'))),
       revealed() && h('div.cmp-latest', h('div.cmp-label', LATEST_LABEL), sideBody(it.latestAnswer, it.latestError, it.id))),
     memo);
-}
-
-// 마지막 깜짝 공개: 같은 질문을 최신 모델에게도
-async function reveal() {
-  if (running) return;
-  const ok = await confirmDialog(`마지막으로, 가장 최신 모델 ${MODELS.latest.id}에게도 같은 질문을 해 볼까요?`, { ok: '🚀 공개하기' });
-  if (!ok) return;
-  store.update((s) => { s.report.latestRevealed = true; });
-  render();
-  run();
 }
 
 function sideBody(answer, error, id) {

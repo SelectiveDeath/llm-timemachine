@@ -27,8 +27,5 @@ export const MODERN = {
   workerUrl: 'https://llm-timemachine.llm-timemachine.workers.dev',
 };
 
-// 속이기 2라운드 잠금 해제 코드 (선생님이 슬라이드에서 공개)
-export const ROUND2_CODE = '원리';
-
 // 리포트에 자동으로 넣을 최대 질문 수
 export const REPORT_MAX_ITEMS = 10;

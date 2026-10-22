@@ -114,8 +114,6 @@
 .win-quote { margin: 4px 0 0; font-size: 14px; color: #b45309; }
 
 /* 🚀 최신 모델 공개 */
-.reveal-btn { border-color: #7c3aed; color: #7c3aed; font-weight: 800; }
-.reveal-btn:hover { background: #f5f0ff; }
 .reveal-banner { margin-bottom: 16px; background: linear-gradient(90deg, #f5f0ff, #eef4ff); border-left: 4px solid #7c3aed; }
 .cmp.three .cmp-grid, .present-grid.three { grid-template-columns: 1fr 1fr 1fr; }
 .cmp-latest { background: #f5f0ff; border: 2px solid #c4a6f5; border-radius: 14px; padding: 12px 16px; }
