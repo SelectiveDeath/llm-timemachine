@@ -91,7 +91,7 @@ function toItem(c, prev) {
     id: prev?.id ?? uid(), ref: c.ref, source: c.source, question: c.question, mission: c.mission ?? null,
     oldAnswer: prev?.oldAnswer ?? c.oldAnswer, modernAnswer: prev?.modernAnswer ?? c.modernAnswer, latestAnswer: prev?.latestAnswer ?? null,
     side: c.side, success: c.success, best: c.best,
-    memo: prev?.memo ?? '', present: prev?.present ?? false, oldError: null, modernError: null, latestError: null,
+    memo: prev?.memo ?? '', oldError: null, modernError: null, latestError: null,
   };
 }
 
@@ -172,8 +172,7 @@ function render() {
       h('div', h('h1', `📊 ${store.state.team}의 타임머신 리포트`),
         h('p', `오늘 던진 질문을 ${MODELS.past.id}(${MODELS.past.year})와 ${MODELS.modern.id}(${MODELS.modern.year})에게 똑같이 물어본 결과`)),
       list.length > 0 && h('div.report-actions',
-        h('button.btn', { onclick: () => build(), disabled: running }, '↻ 다시 만들기'),
-        h('button.btn.btn-primary', { onclick: present }, '🖥 발표 모드'))));
+        h('button.btn', { onclick: () => build(), disabled: running }, '↻ 다시 만들기'))));
 
   if (!list.length) page.append(intro());
   else {
@@ -199,7 +198,7 @@ function intro() {
     h('div.big', '⚖️'),
     h('h2', '오늘의 질문으로 리포트를 만들어요'),
     h('p', '미션에서 현대 LLM에게 한 질문 ', h('b', fromMissions), '개, 과거 LLM에게 한 질문 ', h('b', cands.length - fromMissions), '개가 있어요.'),
-    h('p', `성공한 미션과 관찰 표시를 한 질문을 우선으로 최대 ${REPORT_MAX_ITEMS}개를 골라, 반대쪽 모델에게도 똑같이 물어봐요.`),
+    h('p', `AI가 속은 미션을 우선으로 최대 ${REPORT_MAX_ITEMS}개를 골라, 반대쪽 모델에게도 똑같이 물어봐요.`),
     h('button.btn.btn-primary.btn-lg', { onclick: () => build(), disabled: !cands.length }, '📊 리포트 만들기'),
     !cands.length && h('p.muted', '먼저 ✨ 현대 LLM 미션이나 📼 과거 LLM에서 질문을 해 보세요.'));
 }
@@ -215,7 +214,6 @@ function summary() {
 }
 
 function compareCard(it) {
-  const toggle = h('input', { type: 'checkbox', checked: it.present, onchange: (e) => patch(it.id, { present: e.target.checked }) });
   const memo = h('textarea.cmp-memo', {
     'data-id': it.id, rows: 2, placeholder: '차이 메모: 무엇이 달랐나요? 왜 그렇게 달라졌을까요?',
     value: it.memo, oninput: (e) => patch(it.id, { memo: e.target.value }),
@@ -230,7 +228,6 @@ function compareCard(it) {
       h('span.tag.blue', SOURCE_LABEL[it.source]),
       it.mission && h('span.tag', '🎯 ', it.mission),
       h('b.cmp-question', 'Q. ', it.question),
-      h('label.cmp-present', toggle, ' 발표 후보'),
       h('button.cmp-remove', { onclick: remove, title: '리포트에서 빼기' }, '×')),
     h('div.cmp-grid',
       h('div.cmp-old',
@@ -262,51 +259,4 @@ function moreList() {
     h('ul', rest.map((c) => h('li',
       h('span.tag.blue', SOURCE_LABEL[c.source]), ' ', short(c.question, 80), ' ',
       h('button.btn.btn-sm', { onclick: () => addItem(c), disabled: running }, '+ 넣기')))));
-}
-
-// ── 발표 모드 ──────────────────────────────
-
-function present() {
-  const chosen = items().filter((it) => it.present);
-  const slides = chosen.length ? chosen : items();
-  if (!slides.length) return;
-  let i = 0;
-  const stage = h('div.present-stage');
-  const counter = h('span.present-count');
-  const overlay = h('div.present',
-    h('div.present-bar',
-      h('span', `📊 ${store.state.team}의 타임머신 리포트`),
-      counter,
-      h('button.present-close', { onclick: close, title: '닫기 (Esc)' }, '✕')),
-    stage,
-    h('div.present-nav',
-      h('button.btn', { onclick: () => go(-1) }, '← 이전'),
-      h('button.btn', { onclick: () => go(1) }, '다음 →')));
-
-  function show() {
-    const it = slides[i];
-    counter.textContent = `${i + 1} / ${slides.length}`;
-    add(clear(stage),
-      h('div.present-q', h('span.tag.blue', SOURCE_LABEL[it.source]), h('h2', it.question)),
-      h('div.present-grid' + (revealed() ? '.three' : ''),
-        h('div.cmp-old', h('div.cmp-label', PAST_LABEL), h('div.cmp-text.md', { html: markdown(it.oldAnswer ?? '…') })),
-        h('div.cmp-new', h('div.cmp-label', MODERN_LABEL), h('div.cmp-text.md', { html: markdown(it.modernAnswer ?? '…') })),
-        revealed() && h('div.cmp-latest', h('div.cmp-label', LATEST_LABEL), h('div.cmp-text.md', { html: markdown(it.latestAnswer ?? '…') }))),
-      it.memo && h('div.present-memo', '💬 ', it.memo));
-  }
-  function go(d) { i = (i + d + slides.length) % slides.length; show(); }
-  function key(e) {
-    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
-    else if (e.key === 'ArrowLeft') go(-1);
-    else if (e.key === 'Escape') close();
-  }
-  function close() {
-    document.removeEventListener('keydown', key);
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    overlay.remove();
-  }
-  document.addEventListener('keydown', key);
-  document.body.append(overlay);
-  overlay.requestFullscreen?.().catch(() => {});
-  show();
 }
