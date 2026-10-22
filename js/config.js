@@ -2,11 +2,11 @@
 
 // 과거 LLM 모델 위치
 //  - local: 개발용. 저장소 루트의 models/kogpt2 폴더 (git에는 올라가지 않음)
-//  - hf:    배포용. Hugging Face에 올린 변환본 (8단계에서 id 교체)
+//  - hf:    배포용. Hugging Face에 올린 변환본 (https://huggingface.co/Sunbyeolsa/kogpt2-ko-onnx)
 export const OLD_MODEL = {
-  source: 'local',
-  id: 'kogpt2',
-  localPath: 'models/',
+  source: 'hf',
+  id: 'Sunbyeolsa/kogpt2-ko-onnx',
+  localPath: 'models/', // source를 'local'로 바꾸면 이 폴더의 kogpt2를 씀 (id도 'kogpt2'로)
 };
 
 // 현대 LLM 연결 방식

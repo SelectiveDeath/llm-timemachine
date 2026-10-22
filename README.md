@@ -33,7 +33,7 @@ npx serve .
 # http://localhost:3000
 ```
 
-- 과거 LLM 모델 파일(`models/kogpt2/`, 약 130MB)은 저장소에 없습니다. 만드는 방법은 [tools/notes.md](tools/notes.md) 참고
+- 과거 LLM 모델은 Hugging Face [Sunbyeolsa/kogpt2-ko-onnx](https://huggingface.co/Sunbyeolsa/kogpt2-ko-onnx)에서 받습니다 (약 130MB, 처음 한 번). 변환 방법은 [tools/notes.md](tools/notes.md) 참고
 - 현대 LLM을 실제로 테스트하려면 주소 뒤에 `?dev`를 붙이고 사이드바의 "⚙ 개발 설정"에 API 키를 넣습니다. 키는 그 브라우저에만 저장되고 저장소에는 올라가지 않습니다.
 
 ## 기록 저장
