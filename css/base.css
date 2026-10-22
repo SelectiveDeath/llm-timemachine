@@ -163,3 +163,13 @@ a { color: var(--blue); }
 .step-now, .step-lock { flex-shrink: 0; white-space: nowrap; }
 .nav-item.step .nav-text { min-width: 0; }
 .nav-item.step .nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 🚀 최신 모델 공개 연출 */
+.reveal-overlay { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; background: radial-gradient(circle at center, rgb(110, 50, 220), rgb(23, 33, 63)); color: #fff; cursor: pointer; animation: reveal-in .25s ease-out; }
+.reveal-box { text-align: center; padding: 24px; }
+.reveal-rocket { font-size: 90px; animation: reveal-rocket 1.2s ease-out; }
+.reveal-small { font-size: 18px; opacity: .8; margin-top: 8px; }
+.reveal-box h1 { font-size: clamp(30px, 4vw, 52px); margin: 6px 0 10px; }
+.reveal-box p { font-size: 18px; opacity: .9; margin: 0; }
+@keyframes reveal-in { from { opacity: 0; } }
+@keyframes reveal-rocket { from { transform: translateY(120px) scale(.6); opacity: 0; } }

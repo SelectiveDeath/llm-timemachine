@@ -76,11 +76,13 @@ function summary() {
 // 선생님이 단계를 바꿨을 때
 function onGate({ step, prevStep }) {
   renderSteps();
+  // 최신 모델 공개 단계가 열리는 순간, 어느 화면에 있든 크게 알린다
+  if (step >= REVEAL_STEP && prevStep < REVEAL_STEP) revealOverlay();
   // 새 단계가 열리면 모든 학생 화면을 그 활동으로 데려간다
   if (step > prevStep) {
     const opened = STEPS.find((s) => s.n === step);
     if (opened) {
-      toast(`${opened.icon} ${opened.label}이(가) 열렸어요!`, 3500);
+      toast(`${opened.icon} ${opened.label} 단계가 열렸어요!`, 3500);
       if (current?.name !== opened.view) {
         location.hash = '#/' + opened.view; // hashchange → route()
         return;
@@ -119,6 +121,18 @@ function show(name) {
   current.view.mount(main, name);
   renderSteps();
   document.body.classList.remove('nav-open');
+}
+
+// 🚀 최신 모델 공개 연출 (4초 뒤 또는 누르면 닫힘)
+function revealOverlay() {
+  const overlay = h('div.reveal-overlay', { onclick: () => overlay.remove() },
+    h('div.reveal-box',
+      h('div.reveal-rocket', '🚀'),
+      h('div.reveal-small', '그리고 마지막으로…'),
+      h('h1', `최신 모델 ${MODELS.latest.id} 등장!`),
+      h('p', '같은 질문에 가장 최신 모델은 어떻게 답할까요? 리포트의 오른쪽 칸을 확인하세요.')));
+  document.body.append(overlay);
+  setTimeout(() => overlay.remove(), 4500);
 }
 
 // 잠긴 화면

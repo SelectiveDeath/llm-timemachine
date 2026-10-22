@@ -22,13 +22,20 @@ let progress = { done: 0, total: 0 };
 export function mount(el) {
   host = el;
   render();
-  // 만들다가 새로고침했거나 다른 화면에 갔다 오면 이어서 진행
-  if (!running && pendingItems().length) run();
+  continueWork();
   // 최신 모델 공개 단계가 열리면 바로 묻기 시작
   unsubGate = gate.subscribe(() => {
     render();
-    if (!running && pendingItems().length) run();
+    continueWork();
   });
+}
+
+// 만들다가 새로고침했거나 다른 화면에 갔다 오면 이어서 진행.
+// 리포트를 안 만든 채로 최신 모델 공개 단계가 열리면 자동으로 만든다 (세 칸 모두 채움)
+function continueWork() {
+  if (running) return;
+  if (revealed() && !items().length && candidates().length) build({ ask: false });
+  else if (pendingItems().length) run();
 }
 
 export function unmount() {
@@ -86,11 +93,11 @@ function toItem(c, prev) {
   };
 }
 
-async function build() {
+async function build({ ask = true } = {}) {
   if (running) return;
   const cands = candidates();
   if (!cands.length) return;
-  if (items().length && !(await confirmDialog('리포트를 다시 만들까요?\n이미 받은 답과 메모는 그대로 남아요.', { ok: '다시 만들기' }))) return;
+  if (ask && items().length && !(await confirmDialog('리포트를 다시 만들까요?\n이미 받은 답과 메모는 그대로 남아요.', { ok: '다시 만들기' }))) return;
   const prev = new Map(items().map((it) => [it.ref, it]));
   store.update((s) => {
     s.report.items = cands.slice(0, REPORT_MAX_ITEMS).map((c) => toItem(c, prev.get(c.ref)));
@@ -163,7 +170,7 @@ function render() {
       h('div', h('h1', `📊 ${store.state.team}의 타임머신 리포트`),
         h('p', `오늘 던진 질문을 ${MODELS.past.id}(${MODELS.past.year})와 ${MODELS.modern.id}(${MODELS.modern.year})에게 똑같이 물어본 결과`)),
       list.length > 0 && h('div.report-actions',
-        h('button.btn', { onclick: build, disabled: running }, '↻ 다시 만들기'),
+        h('button.btn', { onclick: () => build(), disabled: running }, '↻ 다시 만들기'),
         h('button.btn.btn-primary', { onclick: present }, '🖥 발표 모드'))));
 
   if (!list.length) page.append(intro());
@@ -191,7 +198,7 @@ function intro() {
     h('h2', '오늘의 질문으로 리포트를 만들어요'),
     h('p', '미션에서 현대 LLM에게 한 질문 ', h('b', fromMissions), '개, 과거 LLM에게 한 질문 ', h('b', cands.length - fromMissions), '개가 있어요.'),
     h('p', `성공한 미션과 관찰 표시를 한 질문을 우선으로 최대 ${REPORT_MAX_ITEMS}개를 골라, 반대쪽 모델에게도 똑같이 물어봐요.`),
-    h('button.btn.btn-primary.btn-lg', { onclick: build, disabled: !cands.length }, '📊 리포트 만들기'),
+    h('button.btn.btn-primary.btn-lg', { onclick: () => build(), disabled: !cands.length }, '📊 리포트 만들기'),
     !cands.length && h('p.muted', '먼저 ✨ 현대 LLM 미션이나 📼 과거 LLM에서 질문을 해 보세요.'));
 }
 
