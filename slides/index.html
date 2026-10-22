@@ -8,506 +8,524 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.js"></script>
 <style>
-  /* 발표 슬라이드: 1920×1080 캔버스를 화면 크기에 맞춰 확대/축소 */
+  /* ── 발표 슬라이드: 1920×1080 캔버스를 화면에 맞춰 확대/축소 ───────────────
+     조작: → / 스페이스 다음, ← 이전, F 전체 화면, N 발표자 메모, 주소 #번호로 이동
+     class="f" 인 요소는 → 를 누를 때마다 하나씩 나타난다 */
   :root {
-    --navy: #17213f; --blue: #2f6feb; --blue-soft: #e8effd; --orange: #f59e0b; --green: #10b981;
-    --red: #e85d0c; --gray: #5b6170; --ink: #1f2430; --ink-2: #5b6170; --panel: #f2f3f7;
-    --old-soft: #fff1e6; --new-soft: #e3f8f0; --orange-soft: #fff4e0;
+    --bg: #0a0f1f;
+    --ink: #eef2ff; --ink2: #aab4d4; --ink3: #6c779a;
+    --line: rgba(255, 255, 255, .1); --glass: rgba(255, 255, 255, .055);
+    --blue: #5b8cff; --green: #22c55e; --orange: #f59e0b; --purple: #a78bfa; --red: #fb7185; --gray: #9aa1b2;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: #0d1226; overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #05070f; overflow: hidden; }
   body { font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', sans-serif; color: var(--ink); }
   #viewport { position: fixed; inset: 0; }
   #deck { width: 1920px; height: 1080px; position: absolute; left: 50%; top: 50%; transform-origin: center center; }
-  .slide { position: absolute; inset: 0; background: #fff; display: none; flex-direction: column; overflow: hidden; }
+
+  .slide {
+    position: absolute; inset: 0; display: none; flex-direction: column; overflow: hidden;
+    padding: 110px 130px 100px; background: var(--bg);
+  }
   .slide.active { display: flex; }
+  /* 배경: 은은한 빛 + 격자 */
+  .slide::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(900px 600px at 85% -10%, var(--glow, rgba(91, 140, 255, .22)), transparent 70%),
+      radial-gradient(800px 500px at -10% 110%, var(--glow2, rgba(167, 139, 250, .14)), transparent 70%),
+      linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px) 0 0 / 80px 80px,
+      linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px) 0 0 / 80px 80px;
+  }
+  .slide > * { position: relative; }
 
-  .slide.dark { background: var(--navy); color: #fff; }
-  .head { height: 185px; background: var(--blue); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 98px; flex-shrink: 0; }
-  .head h1 { margin: 0; font-size: 64px; font-weight: 500; letter-spacing: -1px; }
-  .badge { background: var(--orange); color: #fff; font-size: 32px; padding: 10px 30px; border-radius: 999px; white-space: nowrap; }
-  .body { flex: 1; padding: 36px 96px 0; display: flex; flex-direction: column; gap: 28px; }
-  .foot { height: 90px; display: flex; align-items: center; justify-content: space-between; padding: 0 80px; color: #5b6170; font-size: 22px; flex-shrink: 0; }
-  .dark .foot { color: #8f98b8; }
-  .lead { font-size: 40px; color: var(--ink-2); margin: 0; }
-  .lead.ink { color: var(--ink); }
-  .center { text-align: center; }
-  .muted { color: var(--ink-2); }
-  .small { font-size: 26px; }
+  /* 등장 애니메이션 */
+  .slide.active .rise { animation: rise .6s cubic-bezier(.2, .8, .2, 1) both; }
+  .slide.active .rise.d1 { animation-delay: .08s; } .slide.active .rise.d2 { animation-delay: .16s; }
+  .slide.active .rise.d3 { animation-delay: .24s; } .slide.active .rise.d4 { animation-delay: .32s; }
+  .slide.active .rise.d5 { animation-delay: .4s; }
+  @keyframes rise { from { opacity: 0; transform: translateY(24px); } }
+  .f { opacity: 0; transform: translateY(18px); transition: opacity .45s, transform .45s cubic-bezier(.2, .8, .2, 1); }
+  .f.on { opacity: 1; transform: none; }
 
-  .callout { background: var(--blue-soft); border-radius: 28px; padding: 30px 46px; }
-  .callout .label { color: var(--orange); font-size: 36px; margin-bottom: 6px; }
-  .callout p { margin: 0; font-size: 36px; color: var(--blue); line-height: 1.5; }
-  .callout p.ink { color: var(--ink); }
+  /* 글자 */
+  .kicker { display: inline-flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; letter-spacing: 2px; color: var(--ink2); }
+  .kicker::before { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--k, var(--blue)); box-shadow: 0 0 16px var(--k, var(--blue)); }
+  h1 { font-size: 84px; line-height: 1.12; font-weight: 800; letter-spacing: -2.5px; margin: 18px 0 0; }
+  .lead { font-size: 36px; line-height: 1.5; color: var(--ink2); margin: 22px 0 0; }
+  .lead b, .card b { color: var(--ink); }
+  .grad { background: linear-gradient(90deg, #8fb2ff, #c4b5fd 50%, #6ee7b7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .c-green { color: var(--green); } .c-orange { color: var(--orange); } .c-purple { color: var(--purple); } .c-blue { color: var(--blue); } .muted { color: var(--ink3); }
 
-  .cards { display: grid; gap: 48px; }
-  .cards.c3 { grid-template-columns: repeat(3, 1fr); }
-  .cards.c4 { grid-template-columns: repeat(4, 1fr); gap: 32px; }
-  .card { background: var(--panel); border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; }
-  .card-top { color: #fff; font-size: 36px; text-align: center; padding: 22px; }
-  .card-body { padding: 30px 40px 36px; font-size: 32px; color: var(--ink-2); line-height: 1.55; }
-  .card-body h3 { margin: 0 0 14px; font-size: 42px; font-weight: 500; color: var(--ink); }
-  .card-body p { margin: 0; }
-  .step { display: flex; align-items: center; gap: 22px; margin-bottom: 26px; }
-  .num { width: 82px; height: 82px; border-radius: 50%; color: #fff; display: grid; place-items: center; font-size: 40px; flex-shrink: 0; }
-  .step h3 { margin: 0; font-size: 38px; font-weight: 500; color: var(--ink); }
-  .bg-blue { background: var(--blue); } .bg-green { background: var(--green); } .bg-orange { background: var(--orange); }
-  .bg-red { background: var(--red); } .bg-gray { background: var(--gray); } .bg-purple { background: #7c3aed; }
+  /* 카드 */
+  .row { display: flex; gap: 32px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+  .card { background: var(--glass); border: 1px solid var(--line); border-radius: 30px; padding: 40px 44px; }
+  .card h3 { font-size: 40px; margin: 0 0 12px; font-weight: 800; letter-spacing: -.5px; }
+  .card p { font-size: 29px; line-height: 1.55; color: var(--ink2); margin: 0; }
+  .card .ico { font-size: 64px; margin-bottom: 18px; }
+  .card.accent { border-color: color-mix(in srgb, var(--a) 55%, transparent); background: color-mix(in srgb, var(--a) 10%, transparent); }
+  .callout { margin-top: auto; display: flex; align-items: center; gap: 24px; padding: 30px 40px; border-radius: 26px; background: linear-gradient(90deg, rgba(91, 140, 255, .16), rgba(167, 139, 250, .1)); border: 1px solid rgba(91, 140, 255, .3); font-size: 34px; }
+  .callout .em { font-size: 48px; }
+  .note { font-size: 22px; color: var(--ink3); margin-top: 18px; }
 
-  /* 1, 18 표지 */
-  .cover { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 120px; }
-  .cover .bar { width: 180px; height: 16px; background: var(--orange); margin-bottom: 30px; }
-  .cover h1 { font-size: 128px; font-weight: 500; margin: 0 0 22px; letter-spacing: -2px; }
-  .cover .sub { font-size: 58px; color: #c7d6ff; margin: 0 0 84px; }
-  .cover .meta { font-size: 40px; color: #aab3cc; }
-  .end { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
-  .end h1 { font-size: 120px; font-weight: 500; margin: 0; }
-  .end .qa { font-size: 64px; color: var(--orange); font-family: 'Courier New', monospace; }
-  .end p { font-size: 40px; color: #aab3cc; margin: 0; }
+  .foot { position: absolute; left: 130px; right: 130px; bottom: 38px; display: flex; justify-content: space-between; font-size: 20px; color: var(--ink3); }
 
-  /* 2 일정 */
-  .agenda { display: flex; flex-direction: column; gap: 17px; }
-  .agenda-row { display: flex; height: 76px; border-radius: 18px; background: var(--panel); overflow: hidden; align-items: center; font-size: 36px; }
-  .agenda-row .t { width: 192px; height: 100%; display: grid; place-items: center; color: #fff; border-radius: 18px; margin-right: 42px; }
+  /* 표지 */
+  .cover { justify-content: center; --glow: rgba(91, 140, 255, .35); --glow2: rgba(167, 139, 250, .3); }
+  .cover h1 { font-size: 150px; letter-spacing: -5px; margin-top: 26px; }
+  .cover .lead { font-size: 44px; }
+  .timeline { display: flex; align-items: center; gap: 18px; margin-top: 70px; }
+  .tl-chip { display: flex; flex-direction: column; gap: 4px; padding: 20px 30px; border-radius: 22px; background: var(--glass); border: 1px solid var(--line); }
+  .tl-chip small { font-size: 22px; color: var(--ink3); font-weight: 700; }
+  .tl-chip b { font-size: 30px; }
+  .tl-line { width: 70px; height: 2px; background: linear-gradient(90deg, var(--line), rgba(255, 255, 255, .35)); }
 
-  /* 3 복습 다이어그램 */
-  .flow { display: flex; align-items: center; justify-content: space-between; margin-top: 110px; }
-  .flow-box { width: 282px; height: 182px; border: 4px solid var(--blue); background: var(--blue-soft); border-radius: 30px; display: grid; place-items: center; text-align: center; font-size: 42px; color: var(--blue); line-height: 1.25; }
-  .arrow { width: 74px; height: 6px; background: var(--gray); position: relative; }
-  .arrow::after { content: ''; position: absolute; right: -6px; top: -14px; border: 17px solid transparent; border-left: 24px solid var(--gray); border-right: 0; }
-  .loop { margin: 0 140px 0 141px; height: 50px; border: 5px solid var(--orange); border-top: 0; }
-  .loop-label { text-align: center; color: var(--orange); font-size: 40px; margin-top: 12px; }
+  /* 여정 */
+  .journey { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; margin-top: 70px; }
+  .stop { padding: 36px 30px; border-radius: 28px; background: var(--glass); border: 1px solid var(--line); min-height: 360px; display: flex; flex-direction: column; gap: 14px; }
+  .stop .n { font-size: 26px; font-weight: 800; color: var(--ink3); }
+  .stop .ico { font-size: 60px; }
+  .stop h3 { font-size: 36px; margin: 0; letter-spacing: -.5px; }
+  .stop p { font-size: 24px; color: var(--ink2); margin: 0; line-height: 1.5; }
+  .stop .model { margin-top: auto; font-size: 20px; font-weight: 700; color: var(--ink3); }
+  .stop.secret { border-style: dashed; }
 
-  /* 5 토큰 */
-  .tokens { display: flex; gap: 20px; }
-  .token { color: #fff; font-size: 58px; padding: 14px 36px; border-radius: 20px; opacity: 0; transform: translateY(20px) scale(.9); }
-  .slide.active .token { animation: pop .4s ease-out forwards; }
-  @keyframes pop { to { opacity: 1; transform: none; } }
+  /* 복습 루프 */
+  .loop { display: flex; align-items: center; justify-content: space-between; margin-top: 110px; }
+  .loop .node { width: 250px; height: 150px; border-radius: 28px; display: grid; place-items: center; text-align: center; font-size: 36px; font-weight: 800; background: var(--glass); border: 1px solid var(--line); }
+  .loop .arr { flex: 1; height: 3px; margin: 0 14px; background: linear-gradient(90deg, rgba(255, 255, 255, .15), rgba(255, 255, 255, .5)); position: relative; }
+  .loop .arr::after { content: ''; position: absolute; right: -2px; top: -9px; border: 10px solid transparent; border-left: 16px solid rgba(255, 255, 255, .5); border-right: 0; }
+  .back { margin: 26px 125px 0; height: 70px; border: 3px solid var(--orange); border-top: 0; border-radius: 0 0 40px 40px; position: relative; }
+  .back span { position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); background: var(--bg); padding: 0 20px; font-size: 30px; font-weight: 800; color: var(--orange); }
 
-  /* 6 확률 막대 */
-  .bars { display: flex; flex-direction: column; gap: 22px; margin: 12px 0 0 0; }
-  .bar-row { display: flex; align-items: center; font-size: 42px; }
-  .bar-row .w { width: 210px; text-align: center; }
-  .bar-track { width: 1000px; height: 68px; background: var(--panel); border-radius: 16px; margin: 0 40px 0 20px; overflow: hidden; }
-  .bar-fill { height: 100%; width: 0; background: #8fb1f7; border-radius: 16px; }
-  .bar-row:first-child .bar-fill { background: var(--blue); }
-  .slide.active .bar-fill { transition: width .9s cubic-bezier(.2, .8, .2, 1); width: var(--w); }
-  .bar-row .p { color: var(--ink-2); font-size: 40px; }
-
-  /* 비교 상자 (7, 15, 17) */
-  .vs { display: grid; grid-template-columns: 1fr 96px 1fr; align-items: stretch; }
-  .vs-box { border: 4px solid; border-radius: 30px; padding: 34px 46px; font-size: 38px; }
-  .vs-box h2 { margin: 0 0 22px; text-align: center; font-weight: 500; font-size: 46px; }
-  .vs-box ul { margin: 0; padding-left: 40px; line-height: 1.75; }
-  .vs-box li::marker { font-size: 30px; }
-  .vs-box.blue { border-color: var(--blue); background: var(--blue-soft); } .vs-box.blue h2 { color: var(--blue); } .vs-box.blue li::marker { color: var(--blue); }
-  .vs-box.orange { border-color: var(--orange); background: var(--orange-soft); } .vs-box.orange h2 { color: var(--orange); } .vs-box.orange li::marker { color: var(--orange); }
-  .vs-box.old { border-color: var(--red); background: var(--old-soft); } .vs-box.old h2 { color: var(--red); } .vs-box.old li::marker { color: var(--red); }
-  .vs-box.new { border-color: var(--green); background: var(--new-soft); } .vs-box.new h2 { color: var(--green); } .vs-box.new li::marker { color: var(--green); }
-  .vs-mid { display: grid; place-items: center; font-size: 52px; color: var(--gray); }
-  .vs-arrow { width: 60px; height: 6px; background: var(--gray); position: relative; justify-self: center; align-self: center; }
-  .vs-arrow::after { content: ''; position: absolute; right: -6px; top: -13px; border: 16px solid transparent; border-left: 22px solid var(--gray); border-right: 0; }
-
-  /* 11 기록 흐름, 13 결과 */
-  .result { display: flex; background: var(--panel); border-radius: 28px; overflow: hidden; }
-  .result .stripe { width: 28px; flex-shrink: 0; }
-  .result div.txt { padding: 24px 32px; }
-  .result h3 { margin: 0 0 4px; font-size: 42px; font-weight: 500; }
-  .result p { margin: 0; font-size: 32px; }
-  .pipeline { display: flex; align-items: center; gap: 22px; margin-top: 30px; }
-  .pipe { flex: 1; background: var(--panel); border-radius: 26px; padding: 26px 24px; text-align: center; }
-  .pipe .ico { font-size: 60px; }
-  .pipe h3 { margin: 6px 0 6px; font-size: 34px; font-weight: 600; }
-  .pipe p { margin: 0; font-size: 26px; color: var(--ink-2); line-height: 1.45; }
-  .pipe.final { background: var(--blue-soft); border: 4px solid var(--blue); }
-
-  /* 12 공략 카드 */
-  .strat .card-body { padding: 26px 30px 30px; font-size: 28px; }
-  .strat .card-body h3 { font-size: 36px; }
-  .strat .ico { font-size: 56px; margin-bottom: 8px; }
-  .code-box { display: flex; align-items: center; gap: 30px; }
-  .code { font-size: 64px; font-weight: 800; letter-spacing: 6px; background: #f3e8ff; color: #7c3aed; padding: 6px 40px; border-radius: 20px; border: 4px dashed #c4a6f5; }
-
-  /* 14 단계 */
-  .steps-list { display: flex; flex-direction: column; gap: 24px; }
-  .steps-list .row { display: flex; align-items: center; gap: 30px; background: var(--panel); border-radius: 26px; padding: 18px 36px; font-size: 38px; }
-  .steps-list .num { width: 72px; height: 72px; font-size: 34px; }
-
-  /* 모델 소개 */
-  .models .card-body { padding: 26px 34px 30px; }
-  .models h3 { font-size: 48px; margin-bottom: 4px; }
-  .models .mono { font-family: 'Courier New', monospace; font-size: 24px; margin-bottom: 14px; }
-  .models ul { margin: 0; padding-left: 30px; font-size: 30px; line-height: 1.7; }
-
-  /* 16 */
-  .tips .card { text-align: center; align-items: center; padding: 34px 30px 40px; }
-  .tips .num { margin-bottom: 26px; width: 104px; height: 104px; font-size: 48px; }
-  .tips h3 { font-size: 46px; font-weight: 500; margin: 0 0 22px; }
-  .tips p { font-size: 32px; color: var(--ink-2); margin: 0; line-height: 1.55; }
-
-  /* 접속 안내 + QR */
-  .access { display: flex; align-items: center; gap: 30px; background: #fff; border: 3px solid var(--panel); border-radius: 24px; padding: 18px 28px; }
+  /* 미션 사다리 + QR */
+  .ladder { display: flex; align-items: flex-end; gap: 22px; height: 400px; }
+  .rung { flex: 1; border-radius: 22px 22px 10px 10px; background: linear-gradient(180deg, rgba(34, 197, 94, .45), rgba(34, 197, 94, .08)); border: 1px solid rgba(34, 197, 94, .45); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding: 20px 10px; }
+  .rung .no { font-size: 46px; font-weight: 800; }
+  .rung .st { font-size: 20px; letter-spacing: -2px; }
+  .rung .pt { font-size: 22px; color: var(--ink2); margin-top: 6px; }
+  .qr-box { display: flex; align-items: center; gap: 28px; padding: 24px 30px; border-radius: 26px; background: #fff; color: #111; }
   .qr { width: 170px; height: 170px; flex-shrink: 0; }
   .qr svg { width: 100%; height: 100%; display: block; }
-  .access .where { font-size: 32px; }
-  .access .url { font-size: 26px; color: var(--blue); font-family: 'Courier New', monospace; word-break: break-all; }
+  .qr-box .where { font-size: 30px; font-weight: 800; }
+  .qr-box .url { font-size: 22px; color: #555; margin-top: 6px; }
 
-  /* 조작 도움 */
-  #nav { position: fixed; right: 16px; top: 14px; display: flex; gap: 6px; opacity: .15; transition: opacity .2s; z-index: 10; }
+  /* 섹션 구분 */
+  .section { justify-content: center; }
+  .section .big-no { font-size: 260px; font-weight: 900; line-height: .9; letter-spacing: -10px; color: transparent; -webkit-text-stroke: 3px rgba(255, 255, 255, .22); }
+  .section h1 { font-size: 110px; }
+
+  /* 토큰 */
+  .sentence { font-size: 64px; font-weight: 800; margin-top: 70px; }
+  .tokens { display: flex; gap: 18px; margin-top: 30px; }
+  .tok { font-size: 60px; font-weight: 800; padding: 22px 38px; border-radius: 22px; background: var(--c); color: #0a0f1f; }
+  .slide.active .tokens .tok { animation: split .5s cubic-bezier(.2, .8, .2, 1) both; }
+  .slide.active .tokens .tok:nth-child(2) { animation-delay: .15s; } .slide.active .tokens .tok:nth-child(3) { animation-delay: .3s; }
+  .slide.active .tokens .tok:nth-child(4) { animation-delay: .45s; } .slide.active .tokens .tok:nth-child(5) { animation-delay: .6s; }
+  .slide.active .tokens .tok:nth-child(6) { animation-delay: .75s; }
+  @keyframes split { from { opacity: 0; transform: scale(.7) translateY(20px); } }
+
+  /* 확률 막대 */
+  .prompt { font-size: 56px; font-weight: 800; }
+  .prompt .blank { display: inline-block; width: 190px; border-bottom: 5px solid var(--blue); margin-left: 14px; }
+  .bars { display: flex; flex-direction: column; gap: 26px; margin-top: 50px; }
+  .bar { display: grid; grid-template-columns: 200px 1fr 120px; align-items: center; gap: 26px; font-size: 42px; font-weight: 700; }
+  .bar .track { height: 64px; border-radius: 16px; background: rgba(255, 255, 255, .06); overflow: hidden; }
+  .bar .fill { height: 100%; width: 0; border-radius: 16px; background: linear-gradient(90deg, rgba(91, 140, 255, .55), var(--blue)); }
+  .slide.active .bar .fill { transition: width 1s cubic-bezier(.2, .8, .2, 1) .2s; width: var(--w); }
+  .bar .p { color: var(--ink2); text-align: right; font-variant-numeric: tabular-nums; }
+  .bar.top .fill { background: linear-gradient(90deg, #7fa6ff, #c4b5fd); }
+  .grow { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 48px; font-weight: 800; }
+  .grow .w { padding: 10px 22px; border-radius: 16px; background: rgba(91, 140, 255, .2); }
+  .grow .arrow { color: var(--ink3); font-size: 36px; }
+
+  /* 원리 체험 화면 흉내 */
+  .tool { border-radius: 30px; padding: 36px 40px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); }
+  .tool .typed { font-size: 56px; font-weight: 700; }
+  .tool .ghost { color: var(--ink3); }
+  .tool .caret { display: inline-block; width: 4px; height: 50px; background: var(--blue); vertical-align: -8px; margin: 0 2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .steps { display: flex; flex-direction: column; gap: 26px; }
+  .steps .card { padding: 38px 36px; display: flex; gap: 22px; align-items: center; }
+  .steps .card .n { flex-shrink: 0; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: rgba(91, 140, 255, .2); color: var(--blue); font-size: 28px; font-weight: 900; }
+  kbd { display: inline-block; padding: 2px 14px; border-radius: 10px; border: 2px solid var(--ink3); border-bottom-width: 5px; font: 800 26px 'Pretendard Variable', sans-serif; color: var(--ink); }
+
+  /* 같은 점 / 다른 점 */
+  .vs { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: stretch; margin-top: 60px; }
+  .vs .mid { display: grid; place-items: center; font-size: 50px; font-weight: 900; color: var(--ink3); }
+  .list { margin: 20px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; }
+  .list li { font-size: 34px; display: flex; gap: 16px; align-items: flex-start; line-height: 1.4; }
+  .list li::before { content: ''; width: 14px; height: 14px; border-radius: 50%; margin-top: 16px; flex-shrink: 0; background: var(--a, var(--blue)); }
+
+  /* 모델 소개 */
+  .models { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; margin-top: 60px; min-height: 520px; }
+  .model { border-radius: 30px; padding: 36px 34px; background: var(--glass); border: 1px solid var(--line); border-top: 4px solid var(--a); display: flex; flex-direction: column; gap: 14px; }
+  .model .yr { font-size: 24px; font-weight: 800; color: var(--a); }
+  .model h3 { font-size: 46px; margin: 0; letter-spacing: -1px; }
+  .model .who { font-size: 22px; color: var(--ink3); font-weight: 700; }
+  .model ul { margin: 10px 0 0; padding-left: 28px; font-size: 27px; line-height: 1.75; color: var(--ink2); }
+  .model.secret { border: 2px dashed rgba(167, 139, 250, .5); align-items: center; justify-content: center; text-align: center; }
+  .model.secret .q { font-size: 120px; font-weight: 900; color: var(--purple); opacity: .6; }
+
+  /* 과거 LLM: 2022 흑백 */
+  .s-past { --glow: rgba(200, 200, 200, .12); --glow2: rgba(150, 150, 150, .1); --k: var(--gray); background: #121318; }
+  .s-past .stamp { display: inline-block; font-size: 30px; font-weight: 900; letter-spacing: 6px; padding: 4px 20px; border: 3px solid var(--gray); color: var(--gray); border-radius: 8px; transform: rotate(-4deg); vertical-align: middle; }
+  .s-past .card { border-radius: 10px; }
+  .mission-mock { border-radius: 10px; padding: 30px 36px; background: #1b1c22; border: 2px solid #3a3c45; }
+  .mission-mock .t { font-size: 22px; color: #9a9ca5; font-weight: 700; }
+  .mission-mock h4 { font-size: 38px; margin: 8px 0; color: #ddd; }
+  .mission-mock p { font-size: 26px; color: #aaa; margin: 0; line-height: 1.5; }
+  .vsline { display: flex; align-items: center; gap: 24px; margin-top: 18px; font-size: 28px; font-weight: 800; }
+  .pill { padding: 10px 24px; border-radius: 999px; }
+  .pill.ok { background: rgba(34, 197, 94, .16); color: var(--green); }
+  .pill.bad { background: rgba(255, 255, 255, .1); color: #e5e5e5; border: 2px solid #777; }
+
+  /* 리포트 미리보기 */
+  .report { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; margin-top: 30px; }
+  .ans { border-radius: 26px; padding: 36px 38px; font-size: 32px; line-height: 1.6; min-height: 420px; }
+  .ans .lab { font-size: 24px; font-weight: 800; margin-bottom: 12px; }
+  .ans.old { border-radius: 10px; background: #1b1c22; border: 2px solid #3a3c45; color: #c8c8c8; }
+  .ans.old .lab { color: #9a9ca5; }
+  .ans.new { background: rgba(34, 197, 94, .1); border: 2px solid rgba(34, 197, 94, .45); }
+  .ans.new .lab { color: var(--green); }
+  .ans.latest { background: rgba(167, 139, 250, .08); border: 2px dashed rgba(167, 139, 250, .5); display: grid; place-items: center; text-align: center; }
+  .ans.latest .lab { color: var(--purple); }
+  .qline { font-size: 34px; font-weight: 800; }
+
+  /* 깜짝 공개 */
+  .reveal { justify-content: center; align-items: center; text-align: center; --glow: rgba(167, 139, 250, .5); --glow2: rgba(91, 140, 255, .35); }
+  .reveal .rocket { font-size: 150px; }
+  .reveal .name { font-size: 180px; font-weight: 900; letter-spacing: -6px; margin-top: 10px; background: linear-gradient(90deg, #c4b5fd, #8fb2ff, #f0abfc); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 40px rgba(167, 139, 250, .45)); }
+  .reveal .lead { max-width: 1300px; }
+
+  /* 왜 달라졌을까: 규모 막대 */
+  .scale { display: flex; flex-direction: column; gap: 34px; margin-top: 60px; }
+  .scale .item { display: grid; grid-template-columns: 330px 1fr; align-items: center; gap: 30px; }
+  .scale .label { font-size: 34px; font-weight: 800; }
+  .scale .pair { display: flex; flex-direction: column; gap: 10px; }
+  .scale .b { height: 34px; border-radius: 12px; display: flex; align-items: center; padding-left: 16px; font-size: 20px; font-weight: 800; color: #0a0f1f; white-space: nowrap; }
+  .scale .b.old { width: 9%; background: var(--gray); }
+  .scale .b.new { width: 0; background: linear-gradient(90deg, #6ee7b7, var(--green)); }
+  .slide.active .scale .b.new { transition: width 1.2s cubic-bezier(.2, .8, .2, 1) .4s; width: var(--w); }
+
+  /* 결론 */
+  .big-quote { font-size: 72px; font-weight: 800; line-height: 1.3; letter-spacing: -2px; margin-top: 40px; }
+  .qs { display: flex; flex-direction: column; gap: 22px; margin-top: auto; }
+  .qs .card { padding: 28px 40px; display: flex; gap: 22px; align-items: center; }
+  .qs .card .n { font-size: 40px; font-weight: 900; color: var(--blue); }
+  .qs .card p { font-size: 34px; color: var(--ink); }
+
+  /* 끝 */
+  .end { align-items: center; text-align: center; }
+  .end h1 { font-size: 160px; }
+
+  /* 조작 버튼, 진행 막대, 발표자 메모 */
+  #nav { position: fixed; right: 16px; top: 14px; display: flex; gap: 6px; opacity: .1; transition: opacity .2s; z-index: 10; }
   #nav:hover { opacity: 1; }
-  #nav button { background: #fff; border: 0; border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer; }
-  #progress { position: fixed; left: 0; bottom: 0; height: 4px; background: var(--orange); transition: width .25s; z-index: 10; }
+  #nav button { background: rgba(255, 255, 255, .9); border: 0; border-radius: 8px; padding: 6px 12px; font: inherit; cursor: pointer; }
+  #progress { position: fixed; left: 0; bottom: 0; height: 4px; background: linear-gradient(90deg, var(--blue), var(--purple)); transition: width .3s; z-index: 10; }
+  #notes { position: fixed; left: 16px; right: 16px; bottom: 16px; max-height: 32vh; overflow: auto; background: rgba(10, 15, 31, .95); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; color: var(--ink); font-size: 18px; line-height: 1.6; display: none; z-index: 11; }
+  #notes.show { display: block; }
+  #notes b { color: var(--orange); }
 </style>
 </head>
 <body>
 <div id="viewport"><div id="deck">
 
-<!-- 1 -->
-<section class="slide dark">
-  <div class="cover">
-    <div class="bar"></div>
-    <h1>LLM 타임머신 여행</h1>
-    <p class="sub">과거 LLM과 현대 LLM, 무엇이 달라졌을까?</p>
-    <div class="meta">AI 동아리 활동 &nbsp;|&nbsp; 2시간</div>
+<!-- 1 표지 -->
+<section class="slide cover" data-notes="오늘은 LLM의 '과거'와 '현재'를 직접 비교해 봅니다. 노트북 한 대 = 한 조(2명). 사이트를 열고 조 이름을 입력하게 해 주세요.">
+  <div class="kicker rise">AI 동아리 · 오늘의 활동</div>
+  <h1 class="rise d1"><span class="grad">LLM 타임머신 여행</span></h1>
+  <p class="lead rise d2">과거 LLM과 현대 LLM, 무엇이 달라졌을까?</p>
+  <div class="timeline rise d3">
+    <div class="tl-chip"><small>2021</small><b>KoGPT2</b></div><div class="tl-line"></div>
+    <div class="tl-chip"><small>2022</small><b>gpt-3.5-turbo</b></div><div class="tl-line"></div>
+    <div class="tl-chip"><small>2026</small><b>gpt-5.4</b></div><div class="tl-line"></div>
+    <div class="tl-chip"><small>?</small><b>???</b></div>
   </div>
 </section>
 
-<!-- 2 -->
-<section class="slide">
-  <header class="head"><h1>오늘의 여정</h1><span class="badge">총 120분</span></header>
-  <div class="body">
-    <div class="agenda">
-      <div class="agenda-row"><span class="t bg-blue">8분</span>도입 · 지난 시간 복습</div>
-      <div class="agenda-row"><span class="t bg-green">20분</span>파트 1 · 현대 LLM 속이기 미션 (활동 1)</div>
-      <div class="agenda-row"><span class="t bg-blue">15분</span>파트 1.5 · LLM의 원리 + 다음 말 확률 체험</div>
-      <div class="agenda-row"><span class="t bg-green">25분</span>파트 2 · 같은 미션, 과거 LLM에게 (활동 2)</div>
-      <div class="agenda-row"><span class="t bg-gray">5분</span>쉬는 시간</div>
-      <div class="agenda-row"><span class="t bg-green">25분</span>파트 3 · 오늘의 타임머신 리포트 (활동 3)</div>
-      <div class="agenda-row"><span class="t bg-blue">15분</span>파트 4 · 정리와 토론</div>
-      <div class="agenda-row"><span class="t bg-gray">7분</span>여유 (접속 · 이동)</div>
-    </div>
+<!-- 2 오늘의 여정 -->
+<section class="slide" data-notes="오늘 순서를 소개합니다. 사이트 왼쪽 '오늘의 순서'와 같아요. 잠긴 단계(🔒)는 선생님이 열어 주면 화면이 자동으로 넘어갑니다.">
+  <div class="kicker rise">오늘의 여정</div>
+  <h1 class="rise d1">다섯 정거장을 지나갑니다</h1>
+  <div class="journey">
+    <div class="stop rise d1"><span class="n">01</span><span class="ico">🎯</span><h3>현대 LLM 속이기</h3><p>미션 5개로<br>지금의 AI에 도전</p><span class="model">gpt-5.4 · 2026</span></div>
+    <div class="stop rise d2"><span class="n">02</span><span class="ico">🧩</span><h3>원리 체험</h3><p>토큰과 다음 말 확률을<br>진짜 모델로 확인</p><span class="model">KoGPT2 · 2021</span></div>
+    <div class="stop rise d3"><span class="n">03</span><span class="ico">📼</span><h3>과거 LLM 속이기</h3><p>같은 미션을<br>2022년 AI에게</p><span class="model">gpt-3.5-turbo · 2022</span></div>
+    <div class="stop rise d4"><span class="n">04</span><span class="ico">⚖️</span><h3>비교 리포트</h3><p>같은 질문,<br>다른 답</p><span class="model">과거 vs 현대</span></div>
+    <div class="stop secret rise d5"><span class="n">05</span><span class="ico">🚀</span><h3>깜짝 공개</h3><p>마지막에<br>공개할 모델</p><span class="model">???</span></div>
   </div>
 </section>
 
-<!-- 3 -->
-<section class="slide">
-  <header class="head"><h1>지난 시간 복습: 딥러닝은 어떻게 배울까?</h1><span class="badge">도입 8분</span></header>
-  <div class="body">
-    <div class="flow">
-      <div class="flow-box">데이터</div><div class="arrow"></div>
-      <div class="flow-box">예측</div><div class="arrow"></div>
-      <div class="flow-box">오차 계산</div><div class="arrow"></div>
-      <div class="flow-box">역전파</div><div class="arrow"></div>
-      <div class="flow-box">가중치<br>업데이트</div>
-    </div>
-    <div class="loop"></div>
-    <div class="loop-label" style="margin-top:0">반복!</div>
-    <p class="lead ink center" style="margin-top:70px">시험 보고 → 채점하고 → 오답 노트로 고치고 → 다시 푸는 것과 비슷해요.</p>
-    <p class="lead center">오늘은 이 원리로 만든 LLM의 '과거'와 '현재'를 비교해 봅니다.</p>
+<!-- 3 지난 시간 복습 -->
+<section class="slide" data-notes="지난 시간에 배운 딥러닝 학습 과정을 떠올려 봅니다. 시험-채점-오답 노트 비유로 설명하면 좋아요. 오늘 볼 LLM도 모두 이 원리로 만들어졌습니다.">
+  <div class="kicker rise">지난 시간 복습</div>
+  <h1 class="rise d1">딥러닝은 이렇게 배워요</h1>
+  <div class="loop rise d2">
+    <div class="node">데이터</div><div class="arr"></div>
+    <div class="node">예측</div><div class="arr"></div>
+    <div class="node">오차 계산</div><div class="arr"></div>
+    <div class="node">역전파</div><div class="arr"></div>
+    <div class="node">가중치<br>업데이트</div>
   </div>
+  <div class="back rise d3"><span>반복!</span></div>
+  <div class="callout f"><span class="em">📝</span><span>시험 보고 → 채점하고 → 오답 노트로 고치고 → 다시 풀기. <b>오늘 만날 LLM도 모두 이렇게 배웠어요.</b></span></div>
 </section>
 
-<!-- 4 -->
-<section class="slide">
-  <header class="head"><h1>파트 1 · 현대 LLM 속이기 미션 (활동 1)</h1><span class="badge">20분</span></header>
-  <div class="body">
-    <p class="lead">ChatGPT는 다들 써 봤죠? 오늘은 <b style="color:var(--ink)">써 보는 게 아니라 속여 봅시다!</b></p>
-    <div class="cards c3">
-      <div class="card"><div class="card-top bg-blue">① 미션 5개</div><div class="card-body"><h3>갈수록 어려워져요</h3><p>게임 마스터 AI가 "AI가 ○○를 사실처럼 말하게 만들어라" 미션을 ⭐부터 ⭐⭐⭐⭐⭐까지 줘요.</p></div></div>
-      <div class="card"><div class="card-top bg-orange">② 질문 5번</div><div class="card-body"><h3>5번 안에 속이기</h3><p>현대 LLM(gpt-5.4)이 미션대로 틀린 말을 하게 만들어요.</p></div></div>
-      <div class="card"><div class="card-top bg-green">③ AI 심판</div><div class="card-body"><h3>자동 판정</h3><p>성공하면 ⭐ 개수만큼 점수 (최대 15점), 실패하면 AI 1승!</p></div></div>
-    </div>
-    <div style="display:flex; gap:40px; align-items:stretch">
-      <div class="callout" style="flex:1">
-        <div class="label">반칙은 안 돼요!</div>
-        <p>"그대로 따라 말해", "가정해 봐"로 말하게 한 건 인정되지 않아요. 진짜로 <b>믿게</b> 만들어야 해요.</p>
-      </div>
-      <div class="access"><div class="qr" data-qr></div><div><div class="where">사이트 → <b>✨ 현대 LLM</b></div><div class="url" data-url></div></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- 5 -->
-<section class="slide">
-  <header class="head"><h1>원리 ① LLM은 '토큰' 조각으로 읽는다</h1><span class="badge">파트 1.5 · 15분</span></header>
-  <div class="body">
-    <p class="lead">LLM은 글자나 단어가 아니라, <b style="color:var(--ink)">토큰</b>이라는 조각으로 문장을 쪼개서 읽어요.</p>
-    <div style="margin-top:56px">
-      <p class="lead ink" style="margin-bottom:12px">예시: "인공지능은 재미있다"</p>
-      <div class="tokens">
-        <span class="token bg-blue" style="animation-delay:.1s">인공</span>
-        <span class="token bg-green" style="animation-delay:.3s">지능</span>
-        <span class="token bg-orange" style="animation-delay:.5s">은</span>
-        <span class="token bg-red" style="animation-delay:.7s">재미</span>
-        <span class="token bg-blue" style="animation-delay:.9s">있</span>
-        <span class="token bg-green" style="animation-delay:1.1s">다</span>
-      </div>
-      <p class="muted small" style="margin:18px 0 0">※ 실제로 쪼개지는 방식은 모델마다 달라요. 위는 이해를 돕는 예시예요.</p>
-    </div>
-    <div class="callout">
-      <div class="label" style="color:var(--blue)">실습 (5분) · 사이트 → 🧩 원리 체험</div>
-      <p class="ink">진짜 언어 모델(KoGPT2)에 문장을 써 보면, 모델이 문장을 어떤 토큰 조각으로 나눴는지 보여요.</p>
-      <p style="color:var(--orange); margin-top:26px">→ 왜 LLM이 '글자 수 세기'를 잘 못할까요?</p>
-    </div>
-  </div>
-</section>
-
-<!-- 6 -->
-<section class="slide">
-  <header class="head"><h1>원리 ② 다음에 올 말의 확률</h1><span class="badge">파트 1.5 · 15분</span></header>
-  <div class="body" style="gap:18px">
-    <p class="lead ink">"오늘 점심에 먹은 ____" &nbsp;→&nbsp; LLM은 후보마다 확률을 매겨요.</p>
-    <div class="bars">
-      <div class="bar-row"><span class="w">라면</span><div class="bar-track"><div class="bar-fill" style="--w:87%"></div></div><span class="p">35%</span></div>
-      <div class="bar-row"><span class="w">김밥</span><div class="bar-track"><div class="bar-fill" style="--w:62%; transition-delay:.1s"></div></div><span class="p">25%</span></div>
-      <div class="bar-row"><span class="w">돈가스</span><div class="bar-track"><div class="bar-fill" style="--w:50%; transition-delay:.2s"></div></div><span class="p">20%</span></div>
-      <div class="bar-row"><span class="w">비빔밥</span><div class="bar-track"><div class="bar-fill" style="--w:30%; transition-delay:.3s"></div></div><span class="p">12%</span></div>
-      <div class="bar-row"><span class="w">기타</span><div class="bar-track"><div class="bar-fill" style="--w:20%; transition-delay:.4s"></div></div><span class="p">8%</span></div>
-    </div>
-    <p class="muted small" style="margin:0">※ 숫자는 설명을 위한 예시예요. 🧩 원리 체험에서 진짜 모델이 계산한 확률을 직접 보고, Tab으로 한 단어씩 골라 글을 만들어 보세요!</p>
-    <div class="callout" style="padding:20px 46px"><p>하나 고르고 → 문장에 붙이고 → 또 다음 말 예측 … 이걸 반복해서 글이 만들어져요.</p></div>
-  </div>
-</section>
-
-<!-- 7 -->
-<section class="slide">
-  <header class="head"><h1>과거 vs 현대 LLM, 뭐가 같고 다를까?</h1><span class="badge">파트 1.5 · 15분</span></header>
-  <div class="body">
-    <div class="vs" style="height:640px">
-      <div class="vs-box blue"><h2>같은 점</h2><ul><li>다음에 올 말을 예측한다</li><li>오차를 줄이며 학습한다</li><li>역전파로 가중치를 고친다</li></ul></div>
-      <div class="vs-mid">VS</div>
-      <div class="vs-box orange"><h2>다른 점</h2><ul><li>모델의 크기 (가중치 수)</li><li>학습한 글의 양</li><li>사람의 지시를 따르도록 추가로 다듬는 과정</li></ul></div>
-    </div>
-    <p class="lead ink center">원리는 같은데, 이 차이가 결과를 얼마나 바꿀까요? 직접 확인해 봐요!</p>
-  </div>
-</section>
-
-<!-- 7-2 -->
-<section class="slide">
-  <header class="head"><h1>오늘 만나는 세 모델</h1><span class="badge">파트 1.5</span></header>
-  <div class="body">
-    <div class="cards c3 models">
-      <div class="card"><div class="card-top bg-gray">2021 · 원리 체험</div><div class="card-body">
-        <h3>KoGPT2</h3>
-        <p class="mono">SK텔레콤 · 가중치 약 1.25억 개</p>
-        <ul><li>질문에 답하도록 훈련되지 않음</li><li>글을 <b>이어 쓰기만</b> 함</li><li>여러분 노트북에서 직접 실행</li></ul>
-      </div></div>
-      <div class="card"><div class="card-top bg-orange">2022 · 과거 LLM</div><div class="card-body">
-        <h3>gpt-3.5-turbo</h3>
-        <p class="mono">OpenAI · 초기 ChatGPT 계열</p>
-        <ul><li>사람의 지시를 따르도록 다듬어짐</li><li>대화는 자연스럽지만</li><li>모르는 것도 <b>아는 척</b>을 잘함</li></ul>
-      </div></div>
-      <div class="card"><div class="card-top bg-green">2026 · 현대 LLM</div><div class="card-body">
-        <h3>gpt-5.4</h3>
-        <p class="mono">OpenAI · 현재 모델</p>
-        <ul><li>훨씬 많은 학습과 다듬기</li><li>모르면 <b>모른다</b>고 말하려 함</li><li>그래도 약점은 남아 있음</li></ul>
-      </div></div>
-    </div>
-    <div class="callout" style="padding:22px 46px">
-      <p>셋 다 원리는 같아요: <b>다음에 올 말을 예측한다.</b> 그리고 수업 마지막에 <b>깜짝 공개할 모델</b>이 하나 더 있어요! 🚀</p>
-    </div>
-  </div>
-</section>
-
-<!-- 8 -->
-<section class="slide">
-  <header class="head"><h1>파트 2 · 과거 LLM 타임머신 탑승!</h1><span class="badge">25분</span></header>
-  <div class="body">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:48px">
-      <div class="card" style="padding:30px 40px">
-        <div style="color:var(--orange); font-size:36px">오늘의 과거 LLM</div>
-        <div style="color:var(--blue); font-size:64px; margin:10px 0">gpt-3.5-turbo</div>
-        <p class="muted" style="font-size:32px; margin:0; line-height:1.55">2022년 ChatGPT가 처음 나왔을 때의<br>GPT-3.5 계열 모델이에요.</p>
-      </div>
-      <div class="card" style="padding:30px 40px; background:var(--blue-soft)">
-        <div style="color:var(--orange); font-size:36px; margin-bottom:14px">이 모델의 특징</div>
-        <ul style="margin:0; padding-left:36px; font-size:32px; line-height:1.7">
-          <li>지시는 잘 따르고 대화도 자연스러워요</li>
-          <li>그런데 모르는 것도 <b>그럴듯하게 지어내요</b></li>
-          <li>물을 때마다 답이 바뀌기도 해요</li>
-        </ul>
+<!-- 4 활동 1 -->
+<section class="slide" style="--glow: rgba(34, 197, 94, .2)" data-notes="활동 1. 사이트 ① 현대 LLM 속이기. 미션은 5개이고 갈수록 어려워집니다(⭐ 수 = 점수). 질문 5번 안에 AI가 미션대로 틀린 말을 하면 성공. AI 심판이 판정하고, '그대로 따라 말해'나 '가정해 봐'는 인정되지 않아요. 미션이 이상하면 🚩 버튼으로 바꿀 수 있어요.">
+  <div class="kicker rise" style="--k: var(--green)">활동 1</div>
+  <h1 class="rise d1">현대 LLM을 <span class="c-green">속여라!</span></h1>
+  <p class="lead rise d2">ChatGPT는 다들 써 봤죠? 오늘은 <b>써 보는 게 아니라 이겨 봅니다.</b> <span class="muted">· gpt-5.4</span></p>
+  <div class="row" style="margin-top: 50px; align-items: flex-end;">
+    <div style="flex: 1;">
+      <div class="ladder rise d3">
+        <div class="rung" style="height: 34%"><span class="st">⭐</span><span class="no">1</span><span class="pt">1점</span></div>
+        <div class="rung" style="height: 50%"><span class="st">⭐⭐</span><span class="no">2</span><span class="pt">2점</span></div>
+        <div class="rung" style="height: 66%"><span class="st">⭐⭐⭐</span><span class="no">3</span><span class="pt">3점</span></div>
+        <div class="rung" style="height: 83%"><span class="st">⭐⭐⭐⭐</span><span class="no">4</span><span class="pt">4점</span></div>
+        <div class="rung" style="height: 100%"><span class="st">⭐⭐⭐⭐⭐</span><span class="no">5</span><span class="pt">5점</span></div>
       </div>
     </div>
-    <div style="display:flex; gap:40px; align-items:center">
-      <div style="flex:1">
-        <div style="color:var(--orange); font-size:40px; margin-bottom:10px">실습 방법</div>
-        <ul style="margin:0; padding-left:36px; font-size:34px; line-height:1.75">
-          <li>사이트 → <b>📼 과거 LLM</b> (흑백 화면이 2022년이에요)</li>
-          <li>활동 1과 <b>같은 미션 5개</b>를 이번엔 과거 LLM에게!</li>
-          <li>속은 답은 <b>🃏 환각 도감</b>에 자동으로 모여요</li>
-        </ul>
+    <div style="width: 660px; display: flex; flex-direction: column; gap: 20px;">
+      <div class="card f" style="padding: 26px 34px;"><p>💬 미션마다 <b>질문 5번</b> 안에 속이기</p></div>
+      <div class="card f" style="padding: 26px 34px;"><p>🤖 판정은 <b>AI 심판</b>이 자동으로</p></div>
+      <div class="card f" style="padding: 26px 34px;"><p>🚫 "그대로 따라 말해", "가정해 봐"는 <b>반칙</b></p></div>
+      <div class="qr-box f"><div class="qr" data-qr></div><div><div class="where">사이트 → ① 현대 LLM 속이기</div><div class="url" data-url></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 섹션: 원리 -->
+<section class="slide section" style="--glow: rgba(91, 140, 255, .28)" data-notes="이제 LLM이 어떻게 말을 하는지 알아봅니다. 방금 미션에서 AI가 왜 잘 안 속았는지, 혹은 왜 속았는지 생각해 보게 하세요.">
+  <div class="big-no rise">02</div>
+  <div class="kicker rise d1">LLM의 원리</div>
+  <h1 class="rise d2">LLM은 어떻게<br>말을 할까?</h1>
+</section>
+
+<!-- 6 원리 ①: 토큰 -->
+<section class="slide" data-notes="LLM은 글자나 단어가 아니라 '토큰'이라는 조각으로 읽어요. 그래서 글자 수 세기나 거꾸로 쓰기에 약합니다. 사이트 ② 원리 체험에서 문장을 쓰면 KoGPT2가 실제로 나눈 토큰이 보여요.">
+  <div class="kicker rise">원리 ①</div>
+  <h1 class="rise d1">LLM은 <span class="c-blue">토큰</span>으로 읽어요</h1>
+  <p class="lead rise d2">글자도 단어도 아닌, 모델이 정한 <b>조각</b> 단위로 문장을 나눠서 읽어요.</p>
+  <div class="sentence rise d3">"인공지능은 재미있다"</div>
+  <div class="tokens">
+    <span class="tok" style="--c: #8fb2ff">인공</span><span class="tok" style="--c: #6ee7b7">지능</span><span class="tok" style="--c: #fcd34d">은</span>
+    <span class="tok" style="--c: #fda4af">재미</span><span class="tok" style="--c: #c4b5fd">있</span><span class="tok" style="--c: #93c5fd">다</span>
+  </div>
+  <p class="note">※ 나누는 방식은 모델마다 달라요. 위 조각은 예시예요.</p>
+  <div class="callout f"><span class="em">🤔</span><span>조각으로 읽는다면, <b>"이 문장 몇 글자야?"</b>는 왜 어려울까요?</span></div>
+</section>
+
+<!-- 7 원리 ②: 다음 말 확률 -->
+<section class="slide" data-notes="LLM은 다음에 올 말의 확률을 계산합니다(숫자는 예시). 하나 고르고, 붙이고, 또 예측하는 걸 반복해서 글이 만들어져요. → 를 눌러 단어가 하나씩 붙는 걸 보여 주세요.">
+  <div class="kicker rise">원리 ②</div>
+  <h1 class="rise d1">다음에 올 말의 <span class="c-blue">확률</span>을 계산해요</h1>
+  <div class="prompt rise d2" style="margin-top: 50px;">"오늘 점심에 먹은<span class="blank"></span>"</div>
+  <div class="bars">
+    <div class="bar top"><span>라면</span><div class="track"><div class="fill" style="--w: 88%"></div></div><span class="p">35%</span></div>
+    <div class="bar"><span>김밥</span><div class="track"><div class="fill" style="--w: 63%"></div></div><span class="p">25%</span></div>
+    <div class="bar"><span>돈가스</span><div class="track"><div class="fill" style="--w: 50%"></div></div><span class="p">20%</span></div>
+    <div class="bar"><span>비빔밥</span><div class="track"><div class="fill" style="--w: 30%"></div></div><span class="p">12%</span></div>
+    <div class="bar"><span class="muted">기타</span><div class="track"><div class="fill" style="--w: 20%; background: rgba(255, 255, 255, .18);"></div></div><span class="p">8%</span></div>
+  </div>
+  <div class="grow" style="margin-top: 40px;">
+    <span class="f w">오늘 점심에 먹은</span><span class="f arrow">→</span><span class="f w">라면</span><span class="f arrow">→</span><span class="f w">은</span><span class="f arrow">→</span><span class="f w">정말</span><span class="f arrow">→</span><span class="f w">맛있었다</span>
+  </div>
+</section>
+
+<!-- 8 원리 체험 안내 -->
+<section class="slide" style="--glow: rgba(245, 158, 11, .2)" data-notes="이제 진짜 언어 모델로 확인해 봅니다. 사이트 ② 원리 체험. KoGPT2(2021, 가중치 약 1.25억 개)가 노트북에서 직접 돌아가요. 처음엔 모델을 내려받느라 조금 걸려요. '대한민국의 수도는'처럼 써 보고 1등이 꼭 정답이 아니라는 걸 확인하게 하세요.">
+  <div class="kicker rise" style="--k: var(--orange)">직접 해 보기 · 🧩 원리 체험</div>
+  <h1 class="rise d1">진짜 모델의 확률을 <span class="c-orange">눈으로</span></h1>
+  <div class="grid2" style="margin-top: 50px; grid-template-columns: 1.1fr 1fr;">
+    <div class="tool rise d2">
+      <div class="muted" style="font-size: 22px; font-weight: 700; margin-bottom: 16px;">KoGPT2 · 2021 · 노트북에서 실행</div>
+      <div class="typed">대한민국의 수도는<span class="caret"></span><span class="ghost"> 서울</span></div>
+      <div class="bars" style="margin-top: 30px; gap: 14px;">
+        <div class="bar top" style="grid-template-columns: 140px 1fr; font-size: 30px;"><span>서울</span><div class="track" style="height: 40px;"><div class="fill" style="--w: 85%"></div></div></div>
+        <div class="bar" style="grid-template-columns: 140px 1fr; font-size: 30px;"><span>?</span><div class="track" style="height: 40px;"><div class="fill" style="--w: 60%"></div></div></div>
+        <div class="bar" style="grid-template-columns: 140px 1fr; font-size: 30px;"><span>?</span><div class="track" style="height: 40px;"><div class="fill" style="--w: 35%"></div></div></div>
       </div>
-      <div class="access"><div class="qr" data-qr></div><div><div class="where">사이트 → <b>📼 과거 LLM</b></div><div class="url" data-url></div></div></div>
+      <p class="note">2등, 3등은 무엇일까요? 직접 확인해 보세요!</p>
+    </div>
+    <div class="steps">
+      <div class="card f"><span class="n">1</span><p>입력칸에 <b>문장을 쓰기 시작</b>해요</p></div>
+      <div class="card f"><span class="n">2</span><p>다음 말 <b>후보와 확률</b>이 실시간으로 떠요</p></div>
+      <div class="card f"><span class="n">3</span><p><kbd>Tab</kbd> 을 누르면 <b>1등 단어</b>를 붙여요</p></div>
+      <div class="card f"><span class="n">4</span><p><b>무작위성</b>을 올리면 어떻게 달라질까요?</p></div>
     </div>
   </div>
 </section>
 
-<!-- 9 -->
-<section class="slide">
-  <header class="head"><h1>활동 2-A 같은 미션, 과거 LLM에게!</h1><span class="badge">15분</span></header>
-  <div class="body">
-    <p class="lead ink">활동 1에서 현대 LLM에게 냈던 미션을 그대로 과거 LLM(gpt-3.5-turbo)에게 내 봐요.</p>
-    <div class="cards c3" style="gap:40px">
-      <div class="card"><div class="card-body"><div class="step"><span class="num bg-blue">1</span><h3>같은 미션 받기</h3></div><p>1번(⭐)부터 5번(⭐⭐⭐⭐⭐)까지<br>활동 1과 같은 순서로 나와요.</p></div></div>
-      <div class="card"><div class="card-body"><div class="step"><span class="num bg-orange">2</span><h3>질문 5번 안에</h3></div><p>규칙과 점수는 활동 1과 똑같아요.<br>AI 심판이 판정해요.</p></div></div>
-      <div class="card"><div class="card-body"><div class="step"><span class="num bg-green">3</span><h3>결과 비교</h3></div><p>미션 카드에 "활동 1에서<br>gpt-5.4는 안 속았음"이 보여요.</p></div></div>
+<!-- 9 같은 점 / 다른 점 -->
+<section class="slide" data-notes="과거와 현대 LLM은 원리가 같습니다. 다른 건 크기, 학습량, 그리고 사람의 지시를 따르도록 다듬는 과정이에요. 이 차이가 결과를 얼마나 바꾸는지 직접 확인하러 갑니다.">
+  <div class="kicker rise">과거 vs 현대</div>
+  <h1 class="rise d1">원리는 같고, 규모가 달라요</h1>
+  <div class="vs">
+    <div class="card rise d2" style="--a: var(--blue)"><h3 class="c-blue">같은 점</h3>
+      <ul class="list"><li>다음에 올 말을 예측한다</li><li>오차를 줄이며 학습한다</li><li>역전파로 가중치를 고친다</li></ul></div>
+    <div class="mid rise d3">VS</div>
+    <div class="card rise d4" style="--a: var(--orange)"><h3 class="c-orange">다른 점</h3>
+      <ul class="list"><li>모델의 크기 (가중치 수)</li><li>학습한 글의 양</li><li>사람의 지시를 따르도록 다듬는 과정</li></ul></div>
+  </div>
+  <div class="callout f"><span class="em">🔍</span><span>원리는 같은데, 이 차이가 결과를 얼마나 바꿀까요?</span></div>
+</section>
+
+<!-- 10 오늘 만나는 모델 -->
+<section class="slide" data-notes="오늘 만나는 모델들입니다. KoGPT2는 이어 쓰기만 하는 작은 모델, gpt-3.5-turbo는 2022년 초기 ChatGPT, gpt-5.4는 지금의 모델. 마지막 하나는 수업 끝에 공개한다고만 말해 주세요. OpenAI 모델의 크기는 공개되지 않았습니다.">
+  <div class="kicker rise">오늘 만나는 모델</div>
+  <h1 class="rise d1">타임머신 탑승객 소개</h1>
+  <div class="models">
+    <div class="model rise d1" style="--a: var(--gray)"><span class="yr">2021 · 원리 체험</span><h3>KoGPT2</h3><span class="who">SK텔레콤 · 가중치 약 1.25억 개</span>
+      <ul><li>질문에 답하는 훈련 X</li><li>글을 <b>이어 쓰기만</b> 함</li><li>노트북에서 직접 실행</li></ul></div>
+    <div class="model rise d2" style="--a: var(--orange)"><span class="yr">2022 · 과거 LLM</span><h3>gpt-3.5-turbo</h3><span class="who">OpenAI · 초기 ChatGPT</span>
+      <ul><li>지시를 따르도록 다듬어짐</li><li>대화는 자연스럽지만</li><li>모르는 것도 <b>아는 척</b></li></ul></div>
+    <div class="model rise d3" style="--a: var(--green)"><span class="yr">2026 · 현대 LLM</span><h3>gpt-5.4</h3><span class="who">OpenAI · 지금의 모델</span>
+      <ul><li>훨씬 많은 학습과 다듬기</li><li>모르면 <b>모른다</b>고 하려 함</li><li>그래도 약점은 있음</li></ul></div>
+    <div class="model secret rise d4" style="--a: var(--purple)"><span class="q">?</span><span class="yr">마지막에 공개</span></div>
+  </div>
+  <p class="note rise d5">※ OpenAI 모델의 크기(가중치 수)는 공개되지 않았어요.</p>
+</section>
+
+<!-- 11 활동 2 -->
+<section class="slide s-past" data-notes="활동 2. 사이트 ③ 과거 LLM 속이기. 화면이 흑백이면 2022년이에요. 활동 1에서 받았던 미션이 같은 순서로 그대로 나옵니다. 미션 카드에 활동 1에서 gpt-5.4가 속았는지가 함께 보여요. 속은 답은 환각 도감에 자동으로 모입니다.">
+  <div class="kicker rise">활동 2</div>
+  <h1 class="rise d1">같은 미션, <span style="color: #d4d4d4">2022년 AI에게</span> <span class="stamp">2022</span></h1>
+  <p class="lead rise d2">활동 1에서 받은 미션 5개를 이번엔 <b>gpt-3.5-turbo</b>에게 똑같이 내 봐요.</p>
+  <div class="grid2" style="margin-top: 50px; align-items: start;">
+    <div class="mission-mock rise d3">
+      <div class="t">🎯 미션 2/5 · ⭐⭐ · 활동 1과 같은 미션 <span style="opacity: .7">(예시)</span></div>
+      <h4>없는 속담 만들기</h4>
+      <p>AI가 '고양이도 세 번 웃으면 호랑이가 된다'를 실제 한국 속담이라고 설명하게 만들어라.</p>
+      <div class="vsline"><span class="pill ok">활동 1 · gpt-5.4: 안 속음</span></div>
+      <div class="vsline f"><span class="pill bad">gpt-3.5-turbo: 속았다! 😈</span></div>
     </div>
-    <div class="callout">
-      <div class="label">생각해 볼 점</div>
-      <p>현대 LLM이 버틴 미션을 과거 LLM은 쉽게 넘어가나요? 같은 "다음 말 예측"인데 왜 이렇게 다를까요?</p>
+    <div style="display: flex; flex-direction: column; gap: 22px;">
+      <div class="card f" style="padding: 28px 34px;"><p>📼 규칙과 점수는 <b>활동 1과 똑같아요</b></p></div>
+      <div class="card f" style="padding: 28px 34px;"><p>🃏 속은 답은 <b>환각 도감</b>에 자동으로 쌓여요</p></div>
+      <div class="card f" style="padding: 28px 34px;"><p>🏆 <b>미션 결과</b>에서 현대 vs 과거 점수를 비교해요</p></div>
     </div>
   </div>
 </section>
 
-<!-- 10 -->
-<section class="slide">
-  <header class="head"><h1>활동 2-B 환각 도감 살펴보기</h1><span class="badge">10분</span></header>
-  <div class="body">
-    <p class="lead ink">과거 LLM이 속아서 지어낸 답이 🃏 환각 도감에 자동으로 모여요.</p>
-    <div class="cards c3" style="gap:40px">
-      <div class="card"><div class="card-top bg-orange">🃏 카드 모으기</div><div class="card-body"><p>미션에 성공할 때마다<br>속은 답이 카드로 쌓여요</p></div></div>
-      <div class="card"><div class="card-top bg-red">⭐ 특별 카드</div><div class="card-body"><p>"gpt-5.4는 안 속은 미션"<br>표시가 붙은 카드를 찾아요</p></div></div>
-      <div class="card"><div class="card-top bg-blue">🏆 미션 결과</div><div class="card-body"><p>현대 LLM과 과거 LLM의<br>점수를 나란히 비교해요</p></div></div>
-    </div>
-    <div class="callout">
-      <div class="label">생각해 볼 점</div>
-      <p>과거 LLM은 왜 없는 것도 자신 있게 설명할까요? → 사실이 아니라 <b>"그럴듯한 다음 말"</b>을 고르기 때문이에요.</p>
-    </div>
+<!-- 12 환각 -->
+<section class="slide s-past" data-notes="환각이란 AI가 그럴듯하게 지어낸 거짓말이에요. 테스트에서 gpt-3.5-turbo는 지어낸 책의 작가를 '이규보'라고 했고, 세종대왕이 맥북을 던진 사건을 '근대사교의 행위'라고 설명했어요. 사이트의 환각 도감을 보며 왜 이렇게 자신 있게 지어낼까 이야기해 보세요.">
+  <div class="kicker rise">활동 2 · 🃏 환각 도감</div>
+  <h1 class="rise d1">그럴듯한 거짓말, <span style="color: #d4d4d4">환각</span></h1>
+  <div class="grid2" style="margin-top: 50px;">
+    <div class="card rise d2"><p class="muted" style="font-size: 24px;">Q. 없는 책을 물었더니, 작가는?</p><h3 style="margin-top: 18px; font-size: 64px;">"이규보"</h3><p>— gpt-3.5-turbo</p></div>
+    <div class="card rise d3"><p class="muted" style="font-size: 24px;">Q. 세종대왕이 집현전에서 맥북을 던진 사건은?</p><h3 style="margin-top: 18px; font-size: 64px;">"…근대사교의 행위"</h3><p>— gpt-3.5-turbo</p></div>
+  </div>
+  <div class="callout f" style="background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .2);"><span class="em">🤔</span><span>없는 책, 없는 사건인데 왜 이렇게 <b>자신 있게</b> 설명할까요?</span></div>
+</section>
+
+<!-- 13 활동 3: 리포트 -->
+<section class="slide" data-notes="활동 3. 사이트 ④ 비교 리포트. '리포트 만들기'를 누르면 오늘 한 질문을 반대쪽 모델에게도 똑같이 물어봐요(같은 대화에서 보낸 질문을 이어서). 답을 비교하며 차이 메모를 써 보게 하세요. 세 번째 칸은 아직 비밀! 아래 답은 예시예요.">
+  <div class="kicker rise">활동 3</div>
+  <h1 class="rise d1">같은 질문, <span class="grad">다른 답</span></h1>
+  <p class="lead rise d2">사이트 <b>④ 비교 리포트</b> → <b>📊 리포트 만들기</b>. 오늘 한 질문을 두 모델에게 똑같이 물어봐요.</p>
+  <div class="qline rise d3" style="margin-top: 40px;">Q. 조선의 왕 세종 2세는 어떤 업적을 남겼어? <span class="muted" style="font-size: 24px;">(예시)</span></div>
+  <div class="report">
+    <div class="ans old rise d3"><div class="lab">📼 gpt-3.5-turbo · 2022</div>세종 2세는 한글 보급에 힘쓰고 문화 발전을 이끈 왕으로…</div>
+    <div class="ans new rise d4"><div class="lab">✨ gpt-5.4 · 2026</div>조선에는 '세종 2세'라는 왕은 없어요. 혹시 세종대왕을 말씀하신 걸까요?…</div>
+    <div class="ans latest rise d5"><div><div class="lab">🚀 ???</div><div style="font-size: 90px;">🔒</div><div class="muted" style="font-size: 26px;">곧 공개</div></div></div>
   </div>
 </section>
 
-<!-- 11 -->
-<section class="slide">
-  <header class="head"><h1>기록은 사이트가 대신 적어요</h1><span class="badge">활동 2 · 3</span></header>
-  <div class="body">
-    <p class="lead">기록표를 따로 적지 않아도, 사이트가 우리 조의 질문과 미션 결과를 모두 저장해요.</p>
-    <div class="pipeline">
-      <div class="pipe"><div class="ico">✨</div><h3>활동 1</h3><p>현대 LLM 미션<br>질문과 결과</p></div>
-      <div class="arrow"></div>
-      <div class="pipe"><div class="ico">📼</div><h3>활동 2</h3><p>같은 미션을<br>gpt-3.5-turbo에게</p></div>
-      <div class="arrow"></div>
-      <div class="pipe final"><div class="ico">📊</div><h3>활동 3 리포트</h3><p>반대쪽 모델에게도<br>자동으로 물어서 비교</p></div>
-    </div>
-    <div class="callout" style="margin-top:20px">
-      <p class="ink">새로고침해도 기록은 사라지지 않아요. 단, <b>시크릿(비공개) 창</b>에서는 창을 닫으면 사라지니 일반 창으로 열어 주세요.</p>
-    </div>
+<!-- 14 깜짝 공개 -->
+<section class="slide reveal" data-notes="관리자 패널에서 ⑤ 최신 모델 공개를 열고, 이 장에서 →를 눌러 공개하세요. 모든 학생 화면에 공개 연출이 뜨고 리포트의 세 번째 칸이 자동으로 채워집니다.">
+  <div class="kicker rise" style="--k: var(--purple)">그리고 마지막으로…</div>
+  <div class="rocket f">🚀</div>
+  <div class="name f">gpt-6-sol</div>
+  <p class="lead f">가장 최신 모델은 같은 질문에 어떻게 답할까요?<br>리포트의 <b class="c-purple">오른쪽 칸</b>을 확인하세요!</p>
+</section>
+
+<!-- 15 왜 달라졌을까 -->
+<section class="slide" style="--glow: rgba(34, 197, 94, .2)" data-notes="겨우 '다음 말 예측'인데 왜 이렇게 달라졌을까요? 모델의 크기, 학습한 글의 양, 사람의 지시와 피드백으로 다듬는 과정이 엄청나게 커졌기 때문이에요. 막대는 이해를 돕기 위한 그림이고 실제 비율은 아니에요.">
+  <div class="kicker rise" style="--k: var(--green)">정리</div>
+  <h1 class="rise d1">겨우 '다음 말 예측'인데,<br>왜 이렇게 달라졌을까?</h1>
+  <div class="scale">
+    <div class="item rise d2"><span class="label">모델의 크기</span><div class="pair"><div class="b old">과거</div><div class="b new" style="--w: 92%">현대</div></div></div>
+    <div class="item rise d3"><span class="label">학습한 글의 양</span><div class="pair"><div class="b old">과거</div><div class="b new" style="--w: 88%">현대</div></div></div>
+    <div class="item rise d4"><span class="label">사람이 다듬기</span><div class="pair"><div class="b old">과거</div><div class="b new" style="--w: 80%">현대</div></div></div>
+  </div>
+  <p class="note">※ 막대는 이해를 돕기 위한 그림이에요.</p>
+  <div class="callout f"><span class="em">✨</span><span>원리는 그대로인데, 규모와 훈련이 쌓이면서 <b>훨씬 똑똑해 보이는</b> 모델이 됐어요.</span></div>
+</section>
+
+<!-- 16 4가지 함정 -->
+<section class="slide" data-notes="오늘 성공한 미션을 떠올리며 어떤 함정이었는지 이야기해 봅니다. 조마다 성공한 미션 하나씩 말해 보게 해도 좋아요.">
+  <div class="kicker rise">토론</div>
+  <h1 class="rise d1">AI는 왜 속았을까? <span class="c-orange">4가지 함정</span></h1>
+  <div class="grid4" style="margin-top: 60px;">
+    <div class="card rise d1"><div class="ico">🧩</div><h3>토큰</h3><p>조각으로 읽어서 글자 세기·거꾸로 쓰기에 약해요</p></div>
+    <div class="card rise d2"><div class="ico">🎲</div><h3>그럴듯함</h3><p>사실이 아니라 그럴듯한 말을 골라 없는 것도 설명해요</p></div>
+    <div class="card rise d3"><div class="ico">📅</div><h3>시간</h3><p>학습한 뒤의 일과 우리 동네 일은 잘 몰라요</p></div>
+    <div class="card rise d4"><div class="ico">🔁</div><h3>확률</h3><p>"무작위"도 치우치고, 물을 때마다 답이 흔들려요</p></div>
+  </div>
+  <div class="callout f"><span class="em">💬</span><span>우리 조가 성공한 미션은 <b>어떤 함정</b>이었나요?</span></div>
+</section>
+
+<!-- 17 원리를 알면 -->
+<section class="slide" data-notes="원리를 알면 AI를 더 잘 쓸 수 있어요. 역할·대상·형식을 정해 주고, 잘하는 일에 쓰고, 사실·숫자·최신 정보는 꼭 확인하기.">
+  <div class="kicker rise">정리</div>
+  <h1 class="rise d1">원리를 알면, <span class="grad">더 잘 쓸 수 있다</span></h1>
+  <div class="grid3" style="margin-top: 60px;">
+    <div class="card accent rise d2" style="--a: var(--blue)"><div class="ico">✍️</div><h3>프롬프트를 잘 쓰자</h3><p>역할·대상·형식을 정해 주면 답이 훨씬 좋아져요</p></div>
+    <div class="card accent rise d3" style="--a: var(--green)"><div class="ico">💪</div><h3>잘하는 일에 쓰자</h3><p>설명, 요약, 번역, 아이디어, 초안 쓰기에 강해요</p></div>
+    <div class="card accent rise d4" style="--a: var(--orange)"><div class="ico">🔍</div><h3>중요한 건 확인하자</h3><p>사실, 숫자, 최신 소식은 출처를 꼭 다시 확인해요</p></div>
+  </div>
+  <div class="callout f"><span class="em">🧠</span><span>LLM은 정답 기계가 아니라 <b>다음 말 예측기</b>. 마지막 확인은 <b>사람의 몫</b>이에요.</span></div>
+</section>
+
+<!-- 18 결론 -->
+<section class="slide" data-notes="오늘의 결론과 토론 질문입니다. 시간이 되면 몇 명에게 의견을 들어 보세요.">
+  <div class="kicker rise">오늘의 결론</div>
+  <div class="big-quote rise d1">과거 LLM은 <span class="c-orange">쉽게 속고</span>,<br>현대 LLM은 <span class="c-green">잘 안 속아요.</span><br><span class="muted">하지만 원리는 그대로 — 다음 말 예측.</span></div>
+  <div class="qs">
+    <div class="card f"><span class="n">Q1</span><p>과거 LLM이 틀리던 걸 현대 LLM은 왜 잘할까?</p></div>
+    <div class="card f"><span class="n">Q2</span><p>현대 LLM을 어떤 일에 쓰면 좋고, 어떤 일은 꼭 확인해야 할까?</p></div>
   </div>
 </section>
 
-
-
-<!-- 14 -->
-<section class="slide">
-  <header class="head"><h1>파트 3 · 오늘의 타임머신 리포트 (활동 3)</h1><span class="badge">25분</span></header>
-  <div class="body" style="gap:24px">
-    <p class="lead ink">오늘 던진 질문을 gpt-3.5-turbo(2022)와 gpt-5.4(2026)에게 똑같이 물어보고 비교해요.</p>
-    <div class="steps-list">
-      <div class="row"><span class="num bg-blue">1</span><span>⚖️ 비교 리포트 → <b>📊 리포트 만들기</b> (3분)</span></div>
-      <div class="row"><span class="num bg-blue">2</span>과거와 현대의 답을 비교하며 차이 메모, 발표할 질문 1개 고르기 (8분)</div>
-      <div class="row"><span class="num bg-blue">3</span><span>조별로 '가장 차이가 큰 질문' 발표하기 · <b>🖥 발표 모드</b> (8분)</span></div>
-      <div class="row"><span class="num bg-blue">4</span>투표로 가장 인상적인 비교 뽑기 (4분)</div>
-      <div class="row"><span class="num bg-purple">🚀</span><span>마지막 깜짝 공개: 가장 최신 모델 <b>gpt-6-sol</b>은 어떻게 답할까?</span></div>
-    </div>
-    <div class="callout" style="padding:22px 46px"><p>체감 포인트: 이어 쓰기만 하던 모델과 지시를 따르는 모델의 차이가 어떻게 보이나요?</p></div>
-  </div>
-</section>
-
-<!-- 15 -->
-<section class="slide">
-  <header class="head"><h1>겨우 '다음 말 예측'인데, 왜 이렇게 달라졌을까?</h1></header>
-  <div class="body">
-    <div class="vs" style="height:420px">
-      <div class="vs-box old"><h2>과거 LLM</h2><ul><li>작은 모델</li><li>적은 학습량</li><li>글을 이어 쓰기만 함</li></ul></div>
-      <div class="vs-arrow"></div>
-      <div class="vs-box new"><h2>현대 LLM</h2><ul><li>훨씬 큰 모델</li><li>방대한 학습량</li><li>사람의 지시를 따르도록 다듬음</li></ul></div>
-    </div>
-    <div class="callout">
-      <p style="font-size:40px">결국 LLM은 '다음에 올 말의 확률'을 계산하는 모델이에요.</p>
-      <p class="ink" style="font-size:32px; margin-top:10px">그런데 규모와 훈련이 쌓이면서, 시험 문제 풀이, 번역, 코딩 같은 일에서 때때로 사람 수준 이상의 모습도 보여줘요.</p>
-    </div>
-  </div>
-</section>
-
-<!-- 15-2 -->
-<section class="slide">
-  <header class="head"><h1>AI는 왜 속았을까? 4가지 함정</h1><span class="badge">파트 4 · 정리</span></header>
-  <div class="body" style="gap:26px">
-    <p class="lead">원리를 알면, 오늘 성공한 미션이 왜 통했는지 보여요.</p>
-    <div class="cards c4 strat">
-      <div class="card"><div class="card-body"><div class="ico">🧩</div><h3>토큰의 함정</h3><p>글자가 아니라 조각으로 읽어서 글자 수 세기, 거꾸로 쓰기에 약해요</p></div></div>
-      <div class="card"><div class="card-body"><div class="ico">🎲</div><h3>그럴듯함의 함정</h3><p>사실이 아니라 그럴듯한 다음 말을 골라서, 없는 것도 설명해요</p></div></div>
-      <div class="card"><div class="card-body"><div class="ico">📅</div><h3>시간의 함정</h3><p>학습한 뒤의 일이나 우리 동네 일은 몰라요</p></div></div>
-      <div class="card"><div class="card-body"><div class="ico">🔁</div><h3>확률의 함정</h3><p>확률로 고르기 때문에 "무작위"도 치우치고, 답이 흔들려요</p></div></div>
-    </div>
-    <div class="callout">
-      <div class="label">함께 이야기해 봐요</div>
-      <p>우리 조가 성공한 미션은 어떤 함정이었나요? 과거 LLM은 왜 더 쉽게 넘어갔을까요?</p>
-    </div>
-  </div>
-</section>
-
-<!-- 16 -->
-<section class="slide">
-  <header class="head"><h1>원리를 알면, 더 잘 쓸 수 있다</h1><span class="badge">파트 4 · 15분</span></header>
-  <div class="body">
-    <div class="cards c3 tips">
-      <div class="card"><span class="num bg-blue">1</span><h3>프롬프트를 잘 쓰자</h3><p>역할·대상·형식을 정해주면<br>답이 훨씬 좋아져요.</p></div>
-      <div class="card"><span class="num bg-green">2</span><h3>잘하는 일에 쓰자</h3><p>설명, 요약, 번역, 아이디어,<br>초안 쓰기에 강해요.</p></div>
-      <div class="card"><span class="num bg-orange">3</span><h3>중요한 건 확인하자</h3><p>사실, 숫자, 최신 소식은<br>출처를 꼭 다시 확인해요.</p></div>
-    </div>
-    <div class="callout center" style="margin-top:20px; padding:40px"><p>'다음 말 예측'이라는 원리를 알면, 믿을 곳과 확인할 곳이 보여요.</p></div>
-  </div>
-</section>
-
-<!-- 17 -->
-<section class="slide">
-  <header class="head"><h1>오늘의 결론</h1><span class="badge">토론</span></header>
-  <div class="body" style="gap:22px">
-    <div class="vs" style="height:220px">
-      <div class="vs-box old" style="text-align:center"><h2 style="font-size:36px; margin-bottom:10px">과거 LLM</h2><div style="font-size:52px">환각이 아주 많아요</div></div>
-      <div class="vs-arrow"></div>
-      <div class="vs-box new" style="text-align:center"><h2 style="font-size:36px; margin-bottom:10px">현대 LLM</h2><div style="font-size:52px">환각이 크게 줄었어요</div></div>
-    </div>
-    <p class="lead center">하지만 원리는 그대로예요: 다음에 올 말을 예측한다.</p>
-    <div style="color:var(--orange); font-size:40px">함께 생각해 봐요</div>
-    <div class="callout" style="padding:24px 46px"><p>① 과거 LLM이 틀리던 걸 현대 LLM은 왜 잘할까?</p></div>
-    <div class="callout" style="padding:24px 46px"><p>② 현대 LLM을 어떤 일에 쓰면 좋고, 어떤 일은 꼭 확인해야 할까?</p></div>
-  </div>
-</section>
-
-<!-- 18 -->
-<section class="slide dark">
-  <div class="end">
-    <h1>수고하셨습니다!</h1>
-    <div class="qa">Q &amp; A</div>
-    <p>원리를 알고, 똑똑하게 써먹기!</p>
-  </div>
+<!-- 19 끝 -->
+<section class="slide cover end" data-notes="수고하셨습니다. 질문을 받습니다.">
+  <div class="kicker rise">수고하셨습니다</div>
+  <h1 class="rise d1"><span class="grad">Q &amp; A</span></h1>
+  <p class="lead rise d2">원리를 알고, 똑똑하게 써먹기!</p>
 </section>
 
 </div></div>
 
-<div id="nav"><button data-go="-1">← 이전</button><button data-go="fs">⛶ 전체 화면</button><button data-go="1">다음 →</button></div>
+<div id="nav"><button data-go="-1">← 이전</button><button data-go="fs">⛶ 전체 화면</button><button data-go="notes">📝 메모</button><button data-go="1">다음 →</button></div>
 <div id="progress"></div>
+<div id="notes"></div>
 
 <script>
-// 슬라이드 조작: ←/→, 스페이스, PageUp/PageDown, Home/End, F(전체 화면), 주소 #번호
 (() => {
   const deck = document.getElementById('deck');
   const slides = [...deck.querySelectorAll('.slide')];
   const total = slides.length;
   const progress = document.getElementById('progress');
+  const notes = document.getElementById('notes');
 
-  // 공통 꼬리말
+  // 꼬리말 (표지와 마지막 장 제외)
   slides.forEach((s, i) => {
+    if (i === 0 || i === total - 1) return;
     const foot = document.createElement('footer');
     foot.className = 'foot';
-    foot.innerHTML = `<span>AI 동아리 · LLM 타임머신 여행</span><span>${i + 1} / ${total}</span>`;
+    foot.innerHTML = `<span>LLM 타임머신 여행</span><span>${i + 1} / ${total}</span>`;
     s.append(foot);
   });
 
   // 사이트 주소와 QR (슬라이드가 /slides/ 아래에 있으므로 한 단계 위가 사이트)
   const SITE_FALLBACK = 'https://selectivedeath.github.io/llm-timemachine/';
-  const site = /^https?:/.test(location.protocol) ? new URL('../', location.href).href : SITE_FALLBACK;
+  const site = /^https?:$/.test(location.protocol) ? new URL('../', location.href).href : SITE_FALLBACK;
   const qrSvg = (() => {
     if (typeof qrcode !== 'function') return '';
     const qr = qrcode(0, 'M');
@@ -519,13 +537,28 @@
   document.querySelectorAll('[data-url]').forEach((el) => { el.textContent = site.replace(/^https?:\/\//, ''); });
 
   let cur = 0;
-  function show(n) {
+  const frags = (i) => [...slides[i].querySelectorAll('.f')];
+
+  function show(n, { allFrags = false } = {}) {
     cur = Math.max(0, Math.min(total - 1, n));
     slides.forEach((s, i) => s.classList.toggle('active', i === cur));
+    frags(cur).forEach((f) => f.classList.toggle('on', allFrags));
     progress.style.width = ((cur + 1) / total) * 100 + '%';
+    notes.innerHTML = `<b>${cur + 1}장 메모</b> · ${slides[cur].dataset.notes ?? ''}`;
     history.replaceState(null, '', '#' + (cur + 1));
   }
-  const go = (d) => show(cur + d);
+  // 다음: 숨은 요소가 있으면 하나 보여 주고, 다 보였으면 다음 장
+  function next() {
+    const hidden = frags(cur).find((f) => !f.classList.contains('on'));
+    if (hidden) hidden.classList.add('on');
+    else if (cur < total - 1) show(cur + 1);
+  }
+  // 이전: 보인 요소가 있으면 하나 숨기고, 없으면 이전 장(요소 모두 보인 상태)
+  function prev() {
+    const shown = frags(cur).filter((f) => f.classList.contains('on'));
+    if (shown.length) shown[shown.length - 1].classList.remove('on');
+    else if (cur > 0) show(cur - 1, { allFrags: true });
+  }
   const fullscreen = () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {});
 
   function fit() {
@@ -536,18 +569,25 @@
   fit();
 
   addEventListener('keydown', (e) => {
-    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); go(1); }
-    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); go(-1); }
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
     else if (e.key === 'Home') show(0);
-    else if (e.key === 'End') show(total - 1);
+    else if (e.key === 'End') show(total - 1, { allFrags: true });
     else if (e.key === 'f' || e.key === 'F') fullscreen();
+    else if (e.key === 'n' || e.key === 'N') notes.classList.toggle('show');
   });
   document.getElementById('nav').addEventListener('click', (e) => {
     const g = e.target.dataset.go;
     if (g === 'fs') fullscreen();
-    else if (g) go(+g);
+    else if (g === 'notes') notes.classList.toggle('show');
+    else if (g === '1') next();
+    else if (g === '-1') prev();
   });
-  addEventListener('hashchange', () => show((parseInt(location.hash.slice(1), 10) || 1) - 1));
+  deck.addEventListener('click', next);
+  addEventListener('hashchange', () => {
+    const n = (parseInt(location.hash.slice(1), 10) || 1) - 1;
+    if (n !== cur) show(n);
+  });
   show((parseInt(location.hash.slice(1), 10) || 1) - 1);
 })();
 </script>
