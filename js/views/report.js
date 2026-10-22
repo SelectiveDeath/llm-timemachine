@@ -2,14 +2,14 @@
 // 오늘 던진 질문을 모아, 비어 있는 쪽 모델에도 똑같이 물어보고 나란히 비교한다.
 //  - 미션에서 현대 LLM에게 했던 질문 → 과거 LLM(gpt-3.5-turbo)에게도
 //  - 과거 LLM에게 했던 질문 → 현대 LLM(gpt-5.4)에게도
-// 선생님이 관리자 패널에서 6단계(🚀 최신 모델 공개)를 열면 같은 질문을 최신 모델(gpt-6-sol)에게도 물어 세 번째 칸에 보여 준다.
+// 선생님이 관리자 패널에서 마지막 단계(🚀 최신 모델 공개)를 열면 같은 질문을 최신 모델(gpt-6-sol)에게도 물어 세 번째 칸에 보여 준다.
 import { store, uid, getMissionStats, missionMessages, questionBefore } from '../store.js';
 import { h, add, clear, markdown, confirmDialog, toast, short } from '../ui.js';
 import { chat, ChatError } from '../modern-llm.js';
 import { REPORT_MAX_ITEMS, MODELS } from '../config.js';
-import { gate } from '../gate.js';
+import { gate, REVEAL_STEP } from '../gate.js';
 
-const SOURCE_LABEL = { round1: '현대 1라운드', round2: '현대 2라운드', past: '과거 LLM 미션' };
+const SOURCE_LABEL = { round1: '현대 LLM 미션', past: '과거 LLM 미션' };
 const PAST_LABEL = `📼 ${MODELS.past.id} · ${MODELS.past.year}`;
 const MODERN_LABEL = `✨ ${MODELS.modern.id} · ${MODELS.modern.year}`;
 const LATEST_LABEL = `🚀 ${MODELS.latest.id} · 최신`;
@@ -37,7 +37,7 @@ export function unmount() {
 }
 
 const items = () => store.state.report.items;
-const revealed = () => gate.step >= 6;
+const revealed = () => gate.step >= REVEAL_STEP;
 const needs = (it) => ({
   past: it.oldAnswer == null && !it.oldError,
   modern: it.modernAnswer == null && !it.modernError,
@@ -59,7 +59,7 @@ function candidates() {
     if (!q) continue;
     const isPast = m.bucket === 'past';
     out.push({
-      ref: 'm:' + m.id, source: isPast ? 'past' : m.round === 2 ? 'round2' : 'round1', question: q.content, mission: m.title,
+      ref: 'm:' + m.id, source: isPast ? 'past' : 'round1', question: q.content, mission: m.title,
       oldAnswer: isPast ? ai.content : null, modernAnswer: isPast ? null : ai.content,
       side: isPast ? 'old' : 'new', success: m.status === 'success',
       // 현대 LLM은 안 속었는데 과거 LLM은 속은 미션이 가장 인상적인 비교
@@ -198,12 +198,11 @@ function intro() {
 function summary() {
   const s = store.state;
   const asked = s.modern.messages.filter((m) => m.role === 'user').length + s.past.messages.filter((m) => m.role === 'user').length;
-  const { r1, past, r2 } = getMissionStats();
+  const { modern, past } = getMissionStats();
   return h('div.summary',
     h('div.sum-card', h('span.sum-label', '던진 질문'), h('b.sum-num', asked), h('span.sum-sub', '개')),
-    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id} 1라운드`), h('b.sum-num', `${r1.points}점`), h('span.sum-sub', `미션 ${r1.played}개 중 ${r1.success}개 속음`)),
-    h('div.sum-card.old', h('span.sum-label', `📼 ${MODELS.past.id} (같은 미션)`), h('b.sum-num', `${past.points}점`), h('span.sum-sub', `미션 ${past.played}개 중 ${past.success}개 속음`)),
-    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id} 2라운드`), h('b.sum-num', `${r2.points}점`), h('span.sum-sub', `미션 ${r2.played}개 중 ${r2.success}개 속음`)));
+    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id}`), h('b.sum-num', `${modern.points}점`), h('span.sum-sub', `미션 ${modern.played}개 중 ${modern.success}개 속음`)),
+    h('div.sum-card.old', h('span.sum-label', `📼 ${MODELS.past.id} (같은 미션)`), h('b.sum-num', `${past.points}점`), h('span.sum-sub', `미션 ${past.played}개 중 ${past.success}개 속음`)));
 }
 
 function compareCard(it) {

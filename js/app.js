@@ -4,7 +4,7 @@ import { h, clear, confirmDialog, promptDialog, toast } from './ui.js';
 import { kogpt2 } from './kogpt2.js';
 import { currentMode, isDev, getDevSettings, setDevSettings } from './modern-llm.js';
 import { MODELS } from './config.js';
-import { gate, STEPS, viewStep } from './gate.js';
+import { gate, STEPS, viewStep, REVEAL_STEP } from './gate.js';
 import * as modernView from './views/modern.js';
 import * as principleView from './views/principle.js';
 import * as pastView from './views/past.js';
@@ -16,8 +16,8 @@ const VIEWS = { modern: modernView, principle: principleView, past: pastView, re
 const tag = (m) => `${m.id} · ${m.year}`;
 // 사이드바 단계 밑에 보여 줄 모델 (깜짝 공개 모델은 열리기 전까지 숨김)
 const STEP_SUB = {
-  1: tag(MODELS.modern), 2: tag(MODELS.principle), 3: tag(MODELS.past), 4: tag(MODELS.modern),
-  5: `${MODELS.past.id} vs ${MODELS.modern.id}`, 6: () => (gate.step >= 6 ? MODELS.latest.id : '???'),
+  1: tag(MODELS.modern), 2: tag(MODELS.principle), 3: tag(MODELS.past),
+  4: `${MODELS.past.id} vs ${MODELS.modern.id}`, 5: () => (gate.step >= REVEAL_STEP ? MODELS.latest.id : '???'),
 };
 
 const app = document.getElementById('app');
@@ -52,7 +52,6 @@ function showOnboarding() {
 function start() {
   main = h('main.main');
   clear(app).append(h('div.layout', buildSidebar(), main));
-  syncRound();
   window.addEventListener('hashchange', route);
   route();
 
@@ -67,7 +66,7 @@ function summary() {
   const s = store.state;
   const all = [...s.modern.missions, ...s.past.missions];
   return {
-    r1: getScore(1).team, past: getScore(1, 'past').team, r2: getScore(2).team,
+    modern: getScore(1).team, past: getScore(1, 'past').team,
     missions: all.filter((m) => m.status === 'success' || m.status === 'fail').length,
     wins: all.filter((m) => m.status === 'success').length,
     report: s.report.items.length,
@@ -77,7 +76,6 @@ function summary() {
 // 선생님이 단계를 바꿨을 때
 function onGate({ step, prevStep }) {
   renderSteps();
-  syncRound();
   // 새 단계가 열리면 모든 학생 화면을 그 활동으로 데려간다
   if (step > prevStep) {
     const opened = STEPS.find((s) => s.n === step);
@@ -89,8 +87,8 @@ function onGate({ step, prevStep }) {
       }
     }
   }
-  // 보고 있던 화면의 잠금 상태가 바뀌었거나 라운드가 바뀌었으면 다시 그린다
-  if (current && (current.locked !== !gate.isOpen(current.name) || current.round !== store.state.round)) {
+  // 보고 있던 화면의 잠금 상태가 바뀌었으면 다시 그린다
+  if (current && current.locked !== !gate.isOpen(current.name)) {
     const name = current.name;
     current.view.unmount?.();
     current = null;
@@ -98,22 +96,12 @@ function onGate({ step, prevStep }) {
   }
 }
 
-// 2라운드(4단계)가 열리면 라운드를 2로. 진행 중이던 1라운드 미션은 점수 없이 취소
-function syncRound() {
-  const round = gate.step >= 4 ? 2 : 1;
-  if (store.state.round === round) return;
-  store.update((s) => {
-    if (round === 2) for (const m of s.modern.missions) if (m.round === 1 && m.status === 'active') m.status = 'cancel';
-    s.round = round;
-  });
-}
-
 function route() {
   let name = location.hash.replace(/^#\/?/, '');
   if (!VIEWS[name]) {
     // 주소에 화면이 없으면: 마지막으로 보던 화면, 잠겨 있으면 지금 단계의 화면
     const last = store.state.view;
-    const now = STEPS.find((s) => s.n === Math.max(1, Math.min(gate.step, 5)));
+    const now = STEPS.find((s) => s.n === Math.max(1, Math.min(gate.step, 4)));
     name = VIEWS[last] && gate.isOpen(last) ? last : now.view;
     history.replaceState(null, '', '#/' + name);
   }
@@ -127,7 +115,7 @@ function show(name) {
   clear(main);
   const locked = !gate.isOpen(name);
   main.className = 'main view-' + (locked ? 'locked' : name);
-  current = { name, view: locked ? lockView : VIEWS[name], locked, round: store.state.round };
+  current = { name, view: locked ? lockView : VIEWS[name], locked };
   current.view.mount(main, name);
   renderSteps();
   document.body.classList.remove('nav-open');
@@ -199,7 +187,7 @@ function renderSteps() {
   if (!stepsNav) return;
   const step = gate.step;
   const view = current?.name;
-  // 같은 화면을 쓰는 단계가 여럿이면(미션 1·2라운드, 리포트·공개) 열린 것 중 마지막을 강조
+  // 같은 화면을 쓰는 단계가 여럿이면(리포트·공개) 열린 것 중 마지막을 강조
   const activeN = STEPS.filter((s) => s.view === view && s.n <= Math.max(step, 1)).pop()?.n;
   clear(stepsNav).append(...STEPS.map((s) => {
     const state = s.n < step ? 'done' : s.n === step ? 'now' : 'locked';
@@ -234,7 +222,6 @@ async function resetAll() {
   current?.view.unmount?.();
   current = null;
   store.reset();
-  syncRound();
   route();
   toast('기록을 모두 지웠어요.');
 }

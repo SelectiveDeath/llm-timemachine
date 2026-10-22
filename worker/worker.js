@@ -19,7 +19,7 @@
 //  - { status: {...} } / { admin: {...} }                → 수업 진행 상태 (gate.js)
 
 import { judgeRequest, parseJudge, checkJudgeInput } from '../js/judge.js';
-import { missionRequest, parseMission, ROUND_CATEGORIES, MAX_DIFFICULTY } from '../js/missions.js';
+import { missionRequest, parseMission, CATEGORIES, MAX_DIFFICULTY } from '../js/missions.js';
 import { handleStatus, handleAdmin } from './gate.js';
 
 const LIMITS = {
@@ -101,8 +101,8 @@ async function handleJudge(j, model, env, cors) {
 }
 
 async function handleMission(m, model, env, cors) {
-  const round = m?.round === 2 ? 2 : 1;
-  const category = ROUND_CATEGORIES[round].includes(m?.category) ? m.category : ROUND_CATEGORIES[round][0];
+  const round = 1;
+  const category = m?.category in CATEGORIES ? m.category : 'general';
   const difficulty = Math.min(MAX_DIFFICULTY, Math.max(1, Math.trunc(Number(m?.difficulty)) || 1));
   const avoid = (Array.isArray(m?.avoid) ? m.avoid : []).filter((t) => typeof t === 'string').slice(-20).map((t) => t.slice(0, 30));
   const res = await openai(env, missionRequest(model, { round, category, difficulty, avoid }));

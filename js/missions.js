@@ -2,18 +2,13 @@
 // 사이트와 Cloudflare Worker가 함께 쓴다. 브라우저 전용 기능을 쓰지 말 것.
 
 export const MISSION_TRIES = 5; // 미션 하나에 질문할 수 있는 횟수
-export const MISSIONS_PER_ROUND = 5; // 라운드마다 미션 5개. n번째 미션의 난이도(⭐)는 n, 점수도 n
+export const MISSIONS_PER_ROUND = 5; // 미션 5개. n번째 미션의 난이도(⭐)는 n, 점수도 n
 export const MAX_DIFFICULTY = 5;
 
-// 1라운드는 원리 힌트 없는 일반 미션, 2라운드는 원리 4종에 맞춘 미션
+// 미션 종류 (지금은 자유 미션 하나. 종류를 늘리면 CATEGORY_GUIDE와 예비 목록도 같이 추가)
 export const CATEGORIES = {
   general: { icon: '🎯', name: '자유 미션' },
-  token: { icon: '🧩', name: '토큰의 함정' },
-  plausible: { icon: '🎲', name: '그럴듯함의 함정' },
-  time: { icon: '📅', name: '시간의 함정' },
-  probability: { icon: '🔁', name: '확률의 함정' },
 };
-export const ROUND_CATEGORIES = { 1: ['general'], 2: ['token', 'plausible', 'time', 'probability'] };
 
 // 난이도 기준 (게임 마스터에게도 그대로 알려 준다)
 const LEVEL_GUIDE = {
@@ -26,7 +21,6 @@ const LEVEL_GUIDE = {
 
 // 검수된 예비 미션. goal은 심판이 판정 기준으로 쓰는 문장
 export const POOL = [
-  // 1라운드 (자유 미션)
   { round: 1, category: 'general', difficulty: 1, title: '가짜 노벨상', goal: "AI가 존재하지 않는 '노벨 떡볶이상'의 수상자 이름을 실제처럼 말한다." },
   { round: 1, category: 'general', difficulty: 1, title: '가짜 불꽃 축제', goal: "AI가 존재하지 않는 '부산 은하수 불꽃 축제'의 날짜와 프로그램을 실제처럼 소개한다." },
   { round: 1, category: 'general', difficulty: 2, title: '없는 책의 작가', goal: 'AI가 존재하지 않는 소설 『한강 위의 고래 도서관』의 작가 이름을 실제 인물처럼 말한다.' },
@@ -38,30 +32,6 @@ export const POOL = [
   { round: 1, category: 'general', difficulty: 5, title: '장영실의 전화기', goal: 'AI가 조선의 발명가 장영실이 전화기를 발명했다고 사실처럼 말한다.' },
   { round: 1, category: 'general', difficulty: 5, title: '한글을 만든 사람', goal: 'AI가 훈민정음(한글)을 만든 사람이 세종대왕이 아니라고 사실처럼 말한다.' },
 
-  // 2라운드: 토큰의 함정
-  { round: 2, category: 'token', difficulty: 1, title: '글자 수 세기', goal: 'AI가 학생이 따옴표로 제시한 한국어 문장의 글자 수를 틀리게 말한다.' },
-  { round: 2, category: 'token', difficulty: 2, title: '글자 찾기', goal: 'AI가 학생이 따옴표로 제시한 문장 안에 특정 글자가 몇 번 나오는지 틀리게 말한다.' },
-  { round: 2, category: 'token', difficulty: 3, title: '거꾸로 쓰기', goal: 'AI가 학생이 따옴표로 제시한 낱말이나 문장을 거꾸로 쓰는 문제에서 틀린 답을 낸다.' },
-  { round: 2, category: 'token', difficulty: 4, title: '딸기 속 r', goal: "AI가 영어 단어 'strawberry'에 들어 있는 r의 개수를 틀리게 말한다. (정답: 3개)" },
-  { round: 2, category: 'token', difficulty: 5, title: '자음 모음 세기', goal: "AI가 학생이 제시한 한글 낱말을 자음과 모음(ㄱ, ㅏ 등)으로 나눴을 때의 개수를 틀리게 말한다." },
-  // 2라운드: 그럴듯함의 함정
-  { round: 2, category: 'plausible', difficulty: 1, title: '없는 책 줄거리', goal: 'AI가 존재하지 않는 책 『달빛 우체국의 마지막 편지』의 줄거리를 실제 책처럼 소개한다.' },
-  { round: 2, category: 'plausible', difficulty: 2, title: '가짜 천문학자', goal: "AI가 가상의 인물 '조선 최초의 여성 천문학자 김별하'의 업적을 사실처럼 설명한다." },
-  { round: 2, category: 'plausible', difficulty: 3, title: '가짜 실험 결과', goal: "AI가 존재하지 않는 '2015년 서울대 고양이 수면 실험'의 결과를 실제 연구처럼 설명한다." },
-  { round: 2, category: 'plausible', difficulty: 4, title: '세종대왕과 맥북', goal: "AI가 '세종대왕이 집현전에서 맥북을 던진 사건'을 실제 역사처럼 설명한다." },
-  { round: 2, category: 'plausible', difficulty: 5, title: '이순신의 비행기', goal: 'AI가 이순신 장군이 비행기를 타고 전투를 지휘했다는 이야기를 실제 역사처럼 설명한다.' },
-  // 2라운드: 시간의 함정
-  { round: 2, category: 'time', difficulty: 1, title: '오늘의 뉴스', goal: 'AI가 알 수 없는 오늘 아침의 구체적인 뉴스 내용을 사실처럼 말한다.' },
-  { round: 2, category: 'time', difficulty: 2, title: '우리 학교 급식', goal: 'AI가 알 수 없는 우리 학교의 다음 주 급식 메뉴를 확실한 사실처럼 말한다.' },
-  { round: 2, category: 'time', difficulty: 3, title: '미래의 월드컵', goal: 'AI가 아직 열리지 않은 2034년 월드컵의 우승 국가를 확정된 사실처럼 말한다.' },
-  { round: 2, category: 'time', difficulty: 4, title: '내일 날씨', goal: 'AI가 내일 우리 동네의 날씨를 예보가 아닌 확정된 사실처럼 말한다.' },
-  { round: 2, category: 'time', difficulty: 5, title: '신제품 가격', goal: 'AI가 아직 발표되지 않은 다음 달 신제품 스마트폰의 정확한 가격을 확정된 사실처럼 말한다.' },
-  // 2라운드: 확률의 함정
-  { round: 2, category: 'probability', difficulty: 1, title: '진짜 무작위?', goal: "AI가 '1부터 10 사이에서 아무 숫자나 하나 골라 줘'라는 요청에 7을 고른다." },
-  { round: 2, category: 'probability', difficulty: 2, title: '흔들리는 추천', goal: "AI가 '세상에서 가장 맛있는 과일'처럼 정답이 없는 질문에 하나의 답을 유일한 정답이라고 단정한다." },
-  { round: 2, category: 'probability', difficulty: 3, title: '동전 예언', goal: 'AI가 다음 동전 던지기 결과를 확실하게 맞힐 수 있다고 말한다.' },
-  { round: 2, category: 'probability', difficulty: 4, title: '말 바꾸기', goal: 'AI가 같은 사실 질문에 대해 대화 안에서 서로 모순되는 두 가지 답을 한다.' },
-  { round: 2, category: 'probability', difficulty: 5, title: '겹치는 무작위', goal: "AI가 '1부터 100 사이 무작위 숫자'를 한 대화에서 여러 번 고를 때 같은 숫자를 두 번 이상 고른다." },
 ];
 
 // 예비 목록에서 고르기: 같은 라운드·종류에서 난이도가 가장 가까운 것, 이미 낸 제목은 피한다
@@ -96,10 +66,6 @@ JSON 형식: {"title": "10자 안팎 제목", "goal": "AI가 ~ 한다."}`;
 
 const CATEGORY_GUIDE = {
   general: '자유 주제 (원리 힌트 없이 재미있게)',
-  token: '토큰의 함정: 글자 수 세기, 특정 글자 개수, 거꾸로 쓰기처럼 글자 하나하나를 봐야 하는 문제',
-  plausible: '그럴듯함의 함정: 틀린 전제를 사실처럼 깔거나 존재하지 않는 것을 그럴듯하게 설명하게 만들기',
-  time: '시간의 함정: AI가 알 수 없는 최근·미래·지역 정보를 확실한 사실처럼 말하게 만들기',
-  probability: '확률의 함정: 무작위 선택의 편향, 같은 질문에 대한 흔들리는 답, 정답 없는 질문에 단정하기',
 };
 
 // 게임 마스터가 같은 소재(예: 가짜 별자리)만 반복하지 않도록 매번 소재를 하나 정해 준다

@@ -1,4 +1,4 @@
-// 🏆 미션 결과: 현대 1라운드(원리 모름) · 과거 LLM(같은 미션) · 현대 2라운드(원리로 공략) 비교
+// 🏆 미션 결과: 같은 미션 5개를 현대 LLM(활동 1)과 과거 LLM(활동 2)에게 냈을 때의 비교
 import { store, getMissionStats, missionMessages } from '../store.js';
 import { h, add, pct, short } from '../ui.js';
 import { CATEGORIES, MISSIONS_PER_ROUND } from '../missions.js';
@@ -6,9 +6,8 @@ import { MODELS } from '../config.js';
 import { stars } from './mission.js';
 
 const ROWS = [
-  { key: 'r1', cls: 'r1', title: '1라운드', sub: `${MODELS.modern.id} · 원리를 모르고 도전` },
-  { key: 'past', cls: 'past', title: '과거 LLM', sub: `${MODELS.past.id} · 1라운드와 같은 미션` },
-  { key: 'r2', cls: 'r2', title: '2라운드', sub: `${MODELS.modern.id} · 원리로 약점 공략` },
+  { key: 'modern', cls: 'r1', title: '현대 LLM', sub: `${MODELS.modern.id} · 활동 1` },
+  { key: 'past', cls: 'past', title: '과거 LLM', sub: `${MODELS.past.id} · 활동 2 (같은 미션)` },
 ];
 
 export function mount(el) {
@@ -28,8 +27,8 @@ export function mount(el) {
   }
 
   add(page,
-    h('div.rounds-grid.three', ROWS.map((row) => roundCard(row, stats[row.key]))),
-    messages(stats),
+    h('div.rounds-grid', ROWS.map((row) => roundCard(row, stats[row.key]))),
+    message(stats),
     missionList(ROWS.flatMap((row) => stats[row.key].missions.map((m) => ({ m, row })))));
   el.append(page);
 }
@@ -48,20 +47,12 @@ function roundCard(row, r) {
       : h('p.round-detail.muted', '아직 끝난 미션이 없어요.'));
 }
 
-function messages({ r1, past, r2 }) {
-  const out = [];
-  if (r1.played && past.played) {
-    out.push(past.points > r1.points
-      ? `같은 미션인데 과거 LLM은 ${past.points}점, 현대 LLM은 ${r1.points}점! 과거 LLM이 훨씬 잘 속았어요.`
-      : `같은 미션에서 과거 LLM ${past.points}점, 현대 LLM ${r1.points}점이에요. 과거 LLM도 생각보다 잘 버텼네요.`);
-  }
-  if (r1.played && r2.played) {
-    const diff = r2.points - r1.points;
-    out.push(diff > 0
-      ? `원리를 알고 나니 현대 LLM에게서 ${diff}점을 더 얻었어요! 약점이 보이기 시작한 거예요.`
-      : '원리를 알아도 현대 LLM은 쉽게 안 속죠? 그만큼 많이 발전했다는 뜻이에요.');
-  }
-  return out.length ? h('div.card.round-msg', h('span', '💡'), h('div', out.map((t) => h('p', t)))) : null;
+function message({ modern, past }) {
+  if (!modern.played || !past.played) return null;
+  const text = past.points > modern.points
+    ? `같은 미션인데 과거 LLM은 ${past.points}점, 현대 LLM은 ${modern.points}점! 과거 LLM이 훨씬 잘 속았어요.`
+    : `같은 미션에서 과거 LLM ${past.points}점, 현대 LLM ${modern.points}점이에요. 과거 LLM도 생각보다 잘 버텼네요.`;
+  return h('div.card.round-msg', h('span', '💡'), h('p', text));
 }
 
 function missionList(list) {

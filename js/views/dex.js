@@ -39,5 +39,5 @@ function card({ mission, question, answer }) {
     h('div.dex-mission', `🎯 ${mission.no}번 · ${stars(mission.difficulty)} · ${mission.title}`),
     h('h3.dex-q', 'Q. ', question),
     h('div.dex-answer.md', { html: markdown(answer.content) }),
-    mission.modernResult && h('div.dex-tags', h('span.tag', `1라운드 ${MODELS.modern.id}: ${RESULT[mission.modernResult]}`)));
+    mission.modernResult && h('div.dex-tags', h('span.tag', `활동 1의 ${MODELS.modern.id}: ${RESULT[mission.modernResult]}`)));
 }

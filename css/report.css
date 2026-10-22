@@ -93,10 +93,8 @@
 .round-sub { color: var(--ink-2); font-size: 14px; }
 .round-rate { font-size: 52px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .round-card.r1 .round-rate { color: var(--blue); }
-.round-card.r2 .round-rate { color: #7c3aed; }
 .round-bar { height: 12px; background: var(--bg); border-radius: 999px; overflow: hidden; margin: 10px 0; }
 .round-bar-fill { height: 100%; border-radius: 999px; background: var(--blue); transition: width .6s; }
-.round-card.r2 .round-bar-fill { background: #7c3aed; }
 .round-detail { margin: 0; color: var(--ink-2); }
 .round-msg { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; background: #fffbeb; }
 .round-msg span { font-size: 22px; }

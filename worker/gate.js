@@ -1,9 +1,9 @@
 // 수업 진행 관리: 선생님이 관리자 패널에서 단계를 열면, 모든 학생 노트북이 주기적으로 확인해서 따라간다.
 //  - 학생: { status: { team, view, summary, heartbeat } } → { step, session }
-//  - 관리자: { admin: { password, action: 'get'|'set'|'reset', step } } → { step, session, teams }
+//  - 관리자: { admin: { password, action: 'get'|'set'|'reset', step } } → { step, session, teams }   (step 0~5)
 // 저장소는 D1 데이터베이스(binding: DB). 표 구조는 worker/schema/schema.sql
 
-export const MAX_STEP = 6;
+export const MAX_STEP = 5;
 const ONLINE_MS = 30_000; // 이 시간 안에 신호를 보낸 조는 "접속 중"
 
 async function readState(db) {

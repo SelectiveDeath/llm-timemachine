@@ -10,12 +10,12 @@ AI 동아리 수업 "LLM 타임머신 여행"에서 쓰는 활동 사이트와 �
 
 | 메뉴 | 활동 | 모델 | 파일 |
 |---|---|---|---|
-| ✨ 현대 LLM | 활동 1·3: 속이기 미션 5개씩 (질문 5번 안에, AI 심판 판정) | gpt-5.4 (심판·출제는 gpt-5.4-mini) | `js/views/modern.js`, `js/views/mission.js`(공용), `js/missions.js`, `js/judge.js` |
+| ✨ 현대 LLM | 활동 1: 속이기 미션 5개 (질문 5번 안에, AI 심판 판정) | gpt-5.4 (심판·출제는 gpt-5.4-mini) | `js/views/modern.js`, `js/views/mission.js`(공용), `js/missions.js`, `js/judge.js` |
 | 🧩 원리 체험 | 파트 1.5: 다음 말 확률, 토큰 보기 | KoGPT2 (노트북에서 실행) | `js/views/principle.js`, `js/kogpt2.js` |
 | 📼 과거 LLM | 활동 2: 1라운드와 같은 미션 5개를 과거 LLM에게 | gpt-3.5-turbo | `js/views/past.js`, `css/past.css` |
-| ⚖️ 비교 리포트 | 활동 4: 과거 vs 현대 비교, 마지막에 🚀 최신 모델 공개 | 3.5 ↔ 5.4 (+ gpt-6-sol) | `js/views/report.js` |
+| ⚖️ 비교 리포트 | 활동 3: 과거 vs 현대 비교, 마지막에 🚀 최신 모델 공개 | 3.5 ↔ 5.4 (+ gpt-6-sol) | `js/views/report.js` |
 | 🃏 환각 도감 | 과거 LLM이 미션에서 속은 답 (자동 수집) | | `js/views/dex.js` |
-| 🏆 미션 결과 | 현대 1라운드 · 과거 LLM · 현대 2라운드 비교 | | `js/views/results.js` |
+| 🏆 미션 결과 | 같은 미션에서 현대 LLM vs 과거 LLM 점수 비교 | | `js/views/results.js` |
 
 OpenAI 호출은 모두 Cloudflare Worker(`worker/worker.js`)를 거칩니다. 모델은 `worker/wrangler.toml`의 `MODEL`, `PAST_MODEL`, `LATEST_MODEL`, `JUDGE_MODEL`에서 바꾸고, 화면에 표시되는 이름은 `js/config.js`의 `MODELS`에서 바꿉니다.
 
@@ -30,7 +30,7 @@ OpenAI 호출은 모두 Cloudflare Worker(`worker/worker.js`)를 거칩니다. �
 
 - 주소: https://selectivedeath.github.io/llm-timemachine/admin.html (학생 사이트에는 링크가 없음)
 - 비밀번호는 Worker 비밀값 `ADMIN_PASSWORD` (바꾸려면 `cd worker && npx wrangler@4.127.1 secret put ADMIN_PASSWORD`)
-- 학생 사이트의 "오늘의 순서"는 ① 속이기 미션 1라운드 ② 원리 체험 ③ 과거 LLM ④ 속이기 미션 2라운드 ⑤ 비교 리포트 ⑥ 최신 모델 공개. 관리자 패널에서 연 단계까지만 쓸 수 있고, 나머지는 🔒
+- 학생 사이트의 "오늘의 순서"는 ① 현대 LLM 속이기 ② 원리 체험 ③ 과거 LLM 속이기(같은 미션) ④ 비교 리포트 ⑤ 최신 모델 공개. 관리자 패널에서 연 단계까지만 쓸 수 있고, 나머지는 🔒
 - 학생 노트북은 3초마다 단계를 확인하고(같은 브라우저의 관리자 탭이 바꾸면 즉시), 새 단계가 열리면 그 활동 화면으로 자동 이동. 12초마다 조 현황(화면, 점수 요약)을 보냄. 대화 내용은 보내지 않음
 - "새 수업 시작"을 누르면 모든 단계가 잠기고 학생 노트북의 기록(조 이름 포함)이 지워짐 → 리허설 뒤에 사용
 - 상태는 Cloudflare D1 데이터베이스 `llm-timemachine`에 저장 (`worker/schema/schema.sql`)

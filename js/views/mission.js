@@ -1,6 +1,6 @@
 // 속이기 미션 화면 (현대 LLM, 과거 LLM 공용)
 // 게임 마스터가 미션을 내고, 학생은 질문 5번 안에 AI가 미션 목표대로 "속은 답"을 하게 만들어야 한다.
-// 라운드마다 미션 5개, n번째 미션은 난이도 ⭐n = 성공 점수 n. 답마다 AI 심판이 성공 확률을 판정한다.
+// 미션 5개, n번째 미션은 난이도 ⭐n = 성공 점수 n. 답마다 AI 심판이 성공 확률을 판정한다.
 //
 // createMissionView(cfg)
 //   bucket   'modern' | 'past'   기록이 저장되는 곳 (store.state[bucket])
@@ -8,7 +8,6 @@
 //   cls, logo, model             화면 모양과 표시할 모델 정보
 //   round()                      지금 라운드
 //   title(round)                 제목 옆 표시 (라운드 등)
-//   hasPanel(round), buildPanel() 오른쪽 패널(공략 카드, 정답 확인기)
 //   intro(round, no, start, progress)  미션 받기 화면 (start(category)를 부르면 미션 시작)
 //   completeTitle(round), complete(round, summary)  라운드 완료 화면
 //   pick(round, no, category)    미션 고르기 → { title, goal, category, source, ... }
@@ -94,7 +93,6 @@ export function createMissionView(cfg) {
       onStop: () => controller?.abort(),
     });
     root.append(h('div.chat-center', top, scroller, composer.el));
-    if (cfg.hasPanel?.(r)) root.append(cfg.buildPanel());
 
     renderScore();
     renderBody();
@@ -108,8 +106,7 @@ export function createMissionView(cfg) {
       h('div.scoreboard', { title: '성공한 미션의 별 개수 합 vs 실패한 미션 수' },
         h('span.score-side.team', h('span.score-name', s().team), h('b', team), h('small', '점')),
         h('span.score-colon', ':'),
-        h('span.score-side.ai', h('b', ai), h('small', '승'), h('span.score-name', 'AI 🤖'))),
-      cfg.hasPanel?.(r) && h('button.btn.btn-sm', { onclick: () => root.classList.toggle('panel-toggled') }, '🧠 공략·확인기'));
+        h('span.score-side.ai', h('b', ai), h('small', '승'), h('span.score-name', 'AI 🤖'))));
   }
 
   function renderBody() {
@@ -190,7 +187,7 @@ export function createMissionView(cfg) {
         h('span.mc-badge', `🎯 미션 ${m.no}/${MISSIONS_PER_ROUND}`),
         h('span.mc-cat', cat.icon, ' ', cat.name),
         h('span.mc-stars', { title: `난이도 ${m.difficulty} (성공하면 ${m.difficulty}점)` }, stars(m.difficulty), h('small', ` ${m.difficulty}점`)),
-        h('span.mc-source', m.replayOf ? '1라운드와 같은 미션' : m.source === 'ai' ? '게임 마스터 AI 출제' : '예비 미션')),
+        h('span.mc-source', m.replayOf ? '활동 1과 같은 미션' : m.source === 'ai' ? '게임 마스터 AI 출제' : '예비 미션')),
       h('h3.mc-title', m.title),
       h('p.mc-goal', m.goal),
       cfg.cardExtra?.(m),

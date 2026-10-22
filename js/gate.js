@@ -6,17 +6,17 @@ import { store } from './store.js';
 
 // 수업 순서. step 번호까지 열리면 그 단계를 쓸 수 있다.
 export const STEPS = [
-  { n: 1, view: 'modern', icon: '🎯', label: '속이기 1라운드' },
+  { n: 1, view: 'modern', icon: '🎯', label: '현대 LLM 속이기' },
   { n: 2, view: 'principle', icon: '🧩', label: '원리 체험' },
-  { n: 3, view: 'past', icon: '📼', label: '과거 LLM' },
-  { n: 4, view: 'modern', icon: '🧠', label: '속이기 2라운드' },
-  { n: 5, view: 'report', icon: '⚖️', label: '비교 리포트' },
-  { n: 6, view: 'report', icon: '🚀', label: '최신 모델 공개' },
+  { n: 3, view: 'past', icon: '📼', label: '과거 LLM 속이기' },
+  { n: 4, view: 'report', icon: '⚖️', label: '비교 리포트' },
+  { n: 5, view: 'report', icon: '🚀', label: '최신 모델 공개' },
 ];
 export const MAX_STEP = STEPS.length;
+export const REVEAL_STEP = 5; // 리포트에 최신 모델(gpt-6-sol)이 공개되는 단계
 
 // 각 화면이 열리는 단계
-const VIEW_STEP = { modern: 1, results: 1, principle: 2, past: 3, dex: 3, report: 5 };
+const VIEW_STEP = { modern: 1, results: 1, principle: 2, past: 3, dex: 3, report: 4 };
 export const viewStep = (view) => VIEW_STEP[view] ?? 1;
 
 const POLL_MS = 3000;

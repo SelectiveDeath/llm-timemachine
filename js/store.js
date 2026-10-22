@@ -8,7 +8,6 @@ const fresh = () => ({
   version: VERSION,
   team: null,
   view: 'modern',
-  round: 1, // 속이기 라운드. 선생님이 4단계(2라운드)를 열면 2
   gate: { step: 0, session: null }, // 마지막으로 확인한 수업 단계 (gate.js)
   modern: {
     conv: 1, // 미션 하나 = 대화 하나
@@ -19,15 +18,15 @@ const fresh = () => ({
     missions: [],
   },
   past: {
-    // 현대 LLM과 같은 미션 구조 (과거 LLM에게 1라운드 미션을 다시 도전)
+    // 현대 LLM과 같은 미션 구조 (과거 LLM에게 활동 1의 미션을 다시 도전)
     conv: 1,
     messages: [],
-    missions: [], // + replayOf: 1라운드 미션 id, modernResult: 'success'|'fail'
+    missions: [], // + replayOf: 활동 1 미션 id, modernResult: 'success'|'fail'
     seen: null,
   },
   principle: { writeText: '', temperature: 1 },
   report: {
-    // { id, ref, source: 'round1'|'round2'|'past', question, mission?, oldAnswer, modernAnswer,
+    // { id, ref, source: 'round1'|'past', question, mission?, oldAnswer, modernAnswer,
     //   tags, best, success, memo, present, oldError, modernError }
     items: [],
     generatedAt: null,
@@ -131,14 +130,14 @@ export function getScore(round, bucket = 'modern') {
   return { team, ai };
 }
 
-// 미션 결과: 현대 1라운드, 과거 LLM, 현대 2라운드
+// 미션 결과: 현대 LLM(활동 1) vs 과거 LLM(활동 2, 같은 미션)
 export function getMissionStats() {
   const stat = (key, bucket, round) => {
     const done = state[bucket].missions.filter((m) => m.round === round && finished(m)).sort((a, b) => (a.no ?? 0) - (b.no ?? 0));
     const wins = done.filter((m) => m.status === 'success');
     return { key, bucket, round, played: done.length, success: wins.length, rate: done.length ? wins.length / done.length : 0, points: wins.reduce((t, m) => t + m.difficulty, 0), missions: done };
   };
-  return { r1: stat('r1', 'modern', 1), past: stat('past', 'past', 1), r2: stat('r2', 'modern', 2) };
+  return { modern: stat('modern', 'modern', 1), past: stat('past', 'past', 1) };
 }
 
 // 환각 도감: 과거 LLM이 미션에서 속아 넘어간 답 모음
