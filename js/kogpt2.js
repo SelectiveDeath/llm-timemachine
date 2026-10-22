@@ -73,7 +73,8 @@ export const kogpt2 = {
 
 function getWorker() {
   if (worker) return worker;
-  worker = new Worker(new URL('./kogpt2-thread.js', import.meta.url), { type: 'module' });
+  // 이 파일과 같은 버전 꼬리표(?v=...)를 붙여서 새로 배포하면 스레드 코드도 새로 받게 한다
+  worker = new Worker(new URL('./kogpt2-thread.js' + new URL(import.meta.url).search, import.meta.url), { type: 'module' });
   worker.onmessage = ({ data }) => {
     const p = pending.get(data.id);
     if (!p) return;

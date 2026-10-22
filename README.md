@@ -48,6 +48,16 @@ npx serve .
 - 원리 체험 모델(KoGPT2)은 Hugging Face [Sunbyeolsa/kogpt2-ko-onnx](https://huggingface.co/Sunbyeolsa/kogpt2-ko-onnx)에서 받습니다 (약 130MB, 처음 한 번). 변환 방법은 [tools/notes.md](tools/notes.md) 참고
 - 현대 LLM을 실제로 테스트하려면 주소 뒤에 `?dev`를 붙이고 사이드바의 "⚙ 개발 설정"에 API 키를 넣습니다. 키는 그 브라우저에만 저장되고 저장소에는 올라가지 않습니다.
 
+## 배포할 때 (중요)
+
+GitHub Pages는 파일을 10분 동안 캐시하므로, JS·CSS를 고친 뒤에는 커밋 전에 꼭 실행하세요.
+
+```bash
+python tools/cachebust.py
+```
+
+모든 JS·CSS 주소에 버전(`?v=...`)이 붙어서, 학생들은 새로고침(F5) 한 번이면 새 파일을 받습니다.
+
 ## 기록 저장
 
 조(노트북) 하나의 기록은 브라우저 localStorage에 저장되어 새로고침해도 유지됩니다. 시크릿 모드에서는 창을 닫으면 사라집니다. 사이드바의 "기록 초기화"로 지울 수 있습니다.
