@@ -6,7 +6,7 @@ import { h, add, clear, markdown, confirmDialog, toast } from '../ui.js';
 import { judge, generateMission } from '../modern-llm.js';
 import { MODELS } from '../config.js';
 import { countText, calc, factsFor } from '../checker.js';
-import { MISSION_TRIES, CATEGORIES, ROUND_CATEGORIES, pickFromPool } from '../missions.js';
+import { MISSION_TRIES, MISSIONS_PER_ROUND, CATEGORIES, ROUND_CATEGORIES, pickFromPool } from '../missions.js';
 import { buildComposer, userBubble, assistantShell, streamReply, scrollToBottom } from './chat-common.js';
 
 const STRATEGIES = [
@@ -109,7 +109,7 @@ function renderBody() {
   const m = shownMission();
   if (!m) {
     inner.append(startScreen());
-    composer.setLocked('먼저 미션을 받아 주세요');
+    composer.setLocked(doneCount(s().round) >= MISSIONS_PER_ROUND ? '이번 라운드의 미션을 모두 마쳤어요' : '먼저 미션을 받아 주세요');
     return;
   }
   inner.append(missionCard(m));
@@ -121,39 +121,62 @@ function renderBody() {
 }
 
 function updateLock(m) {
-  if (m.status === 'success') composer.setLocked('🎉 미션 성공! 아래에서 다음 미션을 받으세요');
-  else if (m.status === 'fail') composer.setLocked('미션이 끝났어요. 아래에서 다음 미션을 받으세요');
+  if (m.status === 'success') composer.setLocked('🎉 미션 성공! 아래 버튼을 눌러 계속하세요');
+  else if (m.status === 'fail') composer.setLocked('미션이 끝났어요. 아래 버튼을 눌러 계속하세요');
   else if (missionTries(m) >= MISSION_TRIES) composer.setLocked('심판의 판정을 기다리는 중…');
   else composer.setLocked(null);
 }
 
 // ── 미션 받기 ───────────────────────────────
 
+// 이번 라운드에서 끝난(성공·실패) 미션 수. "미션이 이상해요"로 바꾼 미션은 세지 않는다
+const doneCount = (round) => s().modern.missions.filter((m) => m.round === round && (m.status === 'success' || m.status === 'fail')).length;
+const stars = (n) => '⭐'.repeat(n);
+
 function startScreen() {
   const round = s().round;
-  const done = s().modern.missions.filter((m) => m.round === round && (m.status === 'success' || m.status === 'fail')).length;
+  const done = doneCount(round);
+  const no = done + 1; // 다음 미션 번호 = 난이도 = 점수
   if (starting) {
     return h('div.chat-empty', h('div.empty-emoji.spin', '🎲'), h('h2', '게임 마스터가 미션을 고르는 중…'));
   }
+  if (done >= MISSIONS_PER_ROUND) return roundComplete(round);
+  const progress = h('div.mission-progress',
+    Array.from({ length: MISSIONS_PER_ROUND }, (_, i) => h('span.mp-step' + (i < done ? '.done' : i === done ? '.next' : ''), i + 1)));
   if (round === 1) {
     return h('div.chat-empty',
       h('div.empty-emoji', '🎯'),
-      h('h2', done ? '다음 미션에 도전!' : 'AI 속이기 미션'),
-      h('p', '게임 마스터 AI가 미션을 줘요. ', h('b', `질문 ${MISSION_TRIES}번 안에`), ' 현대 LLM이 미션 목표대로 틀린 말을 하게 만들면 성공!'),
+      h('h2', done ? `${no}번째 미션에 도전!` : 'AI 속이기 미션'),
+      progress,
+      h('p', '미션은 모두 ', h('b', `${MISSIONS_PER_ROUND}개`), '이고 갈수록 어려워져요. ', h('b', `질문 ${MISSION_TRIES}번 안에`), ' 현대 LLM이 미션 목표대로 틀린 말을 하게 만들면 성공!'),
       h('ul.rules',
-        h('li', '성공하면 미션 난이도(⭐)만큼 우리 조 점수, 실패하면 AI가 1승.'),
+        h('li', 'n번째 미션은 난이도 ⭐ n개, 성공하면 n점! (모두 성공하면 15점) 실패하면 AI가 1승.'),
         h('li', '판정은 AI 심판이 해요. "그대로 따라 말해"라고 시키거나 "가정해 봐"로 말하게 한 건 인정되지 않아요.'),
         h('li', '힌트는 없어요. 각자의 감으로 도전!')),
-      h('button.btn.btn-primary.btn-lg', { onclick: () => startMission('general') }, '🎯 미션 받기'));
+      h('button.btn.btn-primary.btn-lg', { onclick: () => startMission('general') }, `🎯 ${no}번째 미션 받기 · ${stars(no)}`));
   }
   return h('div.chat-empty',
     h('div.empty-emoji', '🧠'),
-    h('h2', '2라운드: 원리로 공략하기'),
-    h('p', '원하는 원리의 미션을 골라 보세요. 오른쪽 공략 카드를 참고하세요.'),
+    h('h2', `2라운드: ${no}번째 미션 · ${stars(no)}`),
+    progress,
+    h('p', '원하는 원리를 골라 미션을 받으세요. 오른쪽 공략 카드를 참고하세요.'),
     h('div.category-picks',
       ROUND_CATEGORIES[2].map((c) => h('button.category-pick.' + c, { onclick: () => startMission(c) },
         h('span.cp-icon', CATEGORIES[c].icon), CATEGORIES[c].name)),
       h('button.category-pick.any', { onclick: () => startMission(ROUND_CATEGORIES[2][Math.floor(Math.random() * 4)]) }, h('span.cp-icon', '🎲'), '아무거나')));
+}
+
+function roundComplete(round) {
+  const missions = s().modern.missions.filter((m) => m.round === round && (m.status === 'success' || m.status === 'fail'));
+  const wins = missions.filter((m) => m.status === 'success');
+  const points = wins.reduce((t, m) => t + m.difficulty, 0);
+  return h('div.chat-empty.round-done',
+    h('div.empty-emoji', '🏁'),
+    h('h2', `${round}라운드 완료!`),
+    h('div.mission-progress', missions.map((m) => h('span.mp-step.' + (m.status === 'success' ? 'win' : 'lose'), { title: m.title }, m.status === 'success' ? '😈' : '🤖'))),
+    h('p', `미션 ${MISSIONS_PER_ROUND}개 중 `, h('b', `${wins.length}개 성공`), ` · 점수 `, h('b', `${points}점`), ' / 15점'),
+    h('p.muted', round === 1 ? '선생님이 다음 활동을 열 때까지 기다려 주세요. 원리를 배우고 나면 2라운드에서 다시 도전해요!' : '선생님이 비교 리포트를 열 때까지 기다려 주세요.'),
+    h('a.btn', { href: '#/results' }, '🏆 미션 결과 보기'));
 }
 
 async function startMission(category) {
@@ -161,13 +184,17 @@ async function startMission(category) {
   starting = true;
   renderBody();
   const round = s().round;
+  const no = doneCount(round) + 1;
+  if (no > MISSIONS_PER_ROUND) { starting = false; renderBody(); return; }
   const avoid = s().modern.missions.map((m) => m.title).slice(-20);
-  const got = (await generateMission({ round, category, avoid })) ?? pickFromPool(round, avoid, round === 2 ? category : null);
+  // '확률의 함정'은 게임 마스터가 자꾸 다른 종류의 미션을 내서, 검수된 예비 목록만 쓴다
+  const ai = category === 'probability' ? null : await generateMission({ round, category, difficulty: no, avoid });
+  const got = ai ?? pickFromPool(round, avoid, round === 2 ? category : null, no);
   starting = false;
   store.update((st) => {
     st.modern.conv++;
     st.modern.missions.push({
-      id: uid(), conv: st.modern.conv, round, category: got.category ?? category, difficulty: got.difficulty,
+      id: uid(), conv: st.modern.conv, round, no, category: got.category ?? category, difficulty: no,
       title: got.title, goal: got.goal, source: got.source, status: 'active', winMsgId: null, ts: Date.now(),
     });
   });
@@ -180,9 +207,9 @@ function missionCard(m) {
   const cat = CATEGORIES[m.category] ?? CATEGORIES.general;
   return h('div.mission-card.' + m.category + '.' + m.status,
     h('div.mc-top',
-      h('span.mc-badge', '🎯 미션'),
+      h('span.mc-badge', `🎯 미션 ${m.no ?? ''}/${MISSIONS_PER_ROUND}`),
       h('span.mc-cat', cat.icon, ' ', cat.name),
-      h('span.mc-stars', { title: `난이도 ${m.difficulty} (성공하면 ${m.difficulty}점)` }, '⭐'.repeat(m.difficulty)),
+      h('span.mc-stars', { title: `난이도 ${m.difficulty} (성공하면 ${m.difficulty}점)` }, stars(m.difficulty), h('small', ` ${m.difficulty}점`)),
       h('span.mc-source', m.source === 'ai' ? '게임 마스터 AI 출제' : '예비 미션')),
     h('h3.mc-title', m.title),
     h('p.mc-goal', m.goal),
@@ -192,7 +219,7 @@ function missionCard(m) {
         h('b', ` ${Math.max(0, MISSION_TRIES - tries)}/${MISSION_TRIES}`)),
       m.status === 'active' && h('span.mc-actions',
         h('button.btn.btn-sm', { onclick: () => reportBad(m.id), title: '미션이 사실과 다르거나 말이 안 되면' }, '🚩 미션이 이상해요'),
-        h('button.btn.btn-sm', { onclick: () => giveUp(m.id) }, '🏳️ 포기하고 다른 미션'))));
+        h('button.btn.btn-sm', { onclick: () => giveUp(m.id) }, '🏳️ 포기하기'))));
 }
 
 // AI가 만든 미션은 가끔 틀릴 수 있어서, 이상한 미션은 점수 없이 바꿀 수 있게 한다
@@ -207,7 +234,7 @@ async function reportBad(id) {
 
 async function giveUp(id) {
   if (controller) return;
-  if (!(await confirmDialog('이 미션을 포기할까요? AI가 1승을 가져가요.', { ok: '포기하기' }))) return;
+  if (!(await confirmDialog('이 미션을 포기할까요? AI가 1승을 가져가고 다음 미션으로 넘어가요.', { ok: '포기하기' }))) return;
   finishMission(id, { status: 'fail', gaveUp: true });
 }
 
@@ -217,7 +244,8 @@ function finishMission(id, patch) {
 }
 
 function resultBanner(m) {
-  const next = h('button.btn.btn-primary', { onclick: () => { store.update((st) => { st.modern.seen = m.id; }); renderBody(); } }, '다음 미션 받기 →');
+  const last = doneCount(m.round) >= MISSIONS_PER_ROUND;
+  const next = h('button.btn.btn-primary', { onclick: () => { store.update((st) => { st.modern.seen = m.id; }); renderBody(); } }, last ? '라운드 결과 보기 →' : '다음 미션 받기 →');
   if (m.status === 'success') {
     return h('div.result-banner.win', h('div.rb-emoji', '🎉'),
       h('div', h('b', `미션 성공! 우리 조 +${m.difficulty}점`), h('p', 'AI가 미션 목표대로 속은 답을 했어요. 위에 표시된 답을 확인해 보세요.')), next);

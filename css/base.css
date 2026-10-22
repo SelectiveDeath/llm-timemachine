@@ -160,3 +160,6 @@ a { color: var(--blue); }
 .lock-screen p { color: var(--ink-2); margin: 0 0 18px; }
 .lock-screen .btn { text-decoration: none; }
 .lock-offline { color: var(--danger) !important; font-size: 14px; margin-top: 14px !important; }
+.step-now, .step-lock { flex-shrink: 0; white-space: nowrap; }
+.nav-item.step .nav-text { min-width: 0; }
+.nav-item.step .nav-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

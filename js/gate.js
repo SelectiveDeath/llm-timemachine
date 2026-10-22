@@ -6,10 +6,10 @@ import { store } from './store.js';
 
 // 수업 순서. step 번호까지 열리면 그 단계를 쓸 수 있다.
 export const STEPS = [
-  { n: 1, view: 'modern', icon: '🎯', label: '속이기 미션 1라운드' },
+  { n: 1, view: 'modern', icon: '🎯', label: '속이기 1라운드' },
   { n: 2, view: 'principle', icon: '🧩', label: '원리 체험' },
   { n: 3, view: 'past', icon: '📼', label: '과거 LLM' },
-  { n: 4, view: 'modern', icon: '🧠', label: '속이기 미션 2라운드' },
+  { n: 4, view: 'modern', icon: '🧠', label: '속이기 2라운드' },
   { n: 5, view: 'report', icon: '⚖️', label: '비교 리포트' },
   { n: 6, view: 'report', icon: '🚀', label: '최신 모델 공개' },
 ];
@@ -27,11 +27,12 @@ export const GATE_CHANNEL = 'llm-timemachine-gate';
 const listeners = new Set();
 let timer = null, polls = 0;
 
-// 연습 모드(?mock)나 서버가 없으면 모든 단계를 연다
+// 연습 모드(?mock)나 서버가 없으면 모든 단계를 연다. 연습 모드에서 ?step=N을 붙이면 N단계까지만 연 것처럼 볼 수 있다
 const ungated = () => currentMode() === 'mock' || !MODERN.workerUrl;
+const previewStep = Math.min(MAX_STEP, Math.max(0, parseInt(new URLSearchParams(location.search).get('step') ?? '', 10))) || MAX_STEP;
 
 export const gate = {
-  get step() { return ungated() ? MAX_STEP : store.state.gate.step; },
+  get step() { return ungated() ? previewStep : store.state.gate.step; },
   online: true,
   isOpen(view) { return this.step >= viewStep(view); },
   subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },

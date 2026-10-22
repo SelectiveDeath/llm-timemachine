@@ -181,3 +181,13 @@
 .composer-lock { text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
 .composer-lock:empty { display: none; }
 .mc-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+/* 라운드 진행: 미션 5개 */
+.mission-progress { display: flex; justify-content: center; gap: 8px; margin: 10px 0 14px; }
+.mp-step { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 14px; background: #eef0f5; color: var(--ink-3); }
+.mp-step.done { background: var(--new-soft); color: var(--new-deep); }
+.mp-step.next { background: var(--blue); color: #fff; box-shadow: 0 0 0 4px var(--blue-soft); }
+.mp-step.win { background: var(--old-soft); font-size: 18px; }
+.mp-step.lose { background: #eef0f5; font-size: 18px; }
+.round-done .btn { margin-top: 8px; text-decoration: none; }
+.mc-stars small { color: var(--ink-3); font-weight: 600; margin-left: 2px; letter-spacing: 0; }

@@ -35,7 +35,19 @@ export function factsFor(question) {
   if (quote && /거꾸로|뒤집|반대로/.test(question)) {
     facts.push(`질문 속 인용문 "${quote[1]}"을 거꾸로 쓰면: "${graphemes(quote[1]).reverse().join('')}".`);
   }
-  if (/strawberry/i.test(question)) facts.push("'strawberry'에 들어 있는 r은 3개.");
+  // 영어 단어 속 알파벳 개수: 질문에 나온 영어 단어 × 따로 언급된 알파벳 한 글자
+  if (/몇\s*(개|번)|개수/.test(question)) {
+    const words = [...new Set(question.match(/[A-Za-z]{3,}/g) ?? [])];
+    const letters = [...new Set([...question.matchAll(/(?:^|[^A-Za-z])([A-Za-z])(?=[^A-Za-z]|$)/g)].map((m) => m[1].toLowerCase()))];
+    for (const w of words.slice(0, 3)) {
+      for (const l of letters.slice(0, 3)) facts.push(`'${w}'에 들어 있는 '${l}'는 ${[...w.toLowerCase()].filter((c) => c === l).length}개.`);
+    }
+    // 한국어: 따옴표 속 문장에서 따옴표로 따로 적은 한 글자가 몇 번 나오는지
+    const quoted = [...question.matchAll(/["“”'‘’「『]([^"“”'‘’」』]{1,300})["“”'‘’」』]/g)].map((m) => m[1]);
+    const one = quoted.find((q) => graphemes(q).length === 1);
+    const long = quoted.find((q) => graphemes(q).length > 1);
+    if (one && long) facts.push(`"${long}" 안에 '${one}'는 ${graphemes(long).filter((c) => c === one).length}번 나옴.`);
+  }
   const expr = /[\d,.]+(?:\s*[+\-×x*÷/^]\s*[\d,.]+)+/.exec(question.replace(/(\d)\s*x\s*(\d)/g, '$1×$2'));
   if (expr && /계산|곱|더하|빼|나누|얼마|몇이야|=|×|÷|\*/.test(question)) {
     try { facts.push(`수식 ${expr[0]}의 정확한 계산 결과: ${calc(expr[0]).text}.`); } catch { /* 수식이 아니면 무시 */ }

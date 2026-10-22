@@ -76,12 +76,13 @@ export async function judge({ goal, messages, facts }) {
 }
 
 // 게임 마스터에게 새 미션 받기. 실패하면 null (→ 예비 목록 사용)
-export async function generateMission({ round, category, avoid }) {
+export async function generateMission({ round, category, difficulty, avoid }) {
   if (currentMode() === 'mock') return null;
   try {
-    const res = await post({ mission: { round, category, avoid } }, missionRequest(MODELS.judge.id, { round, category, avoid }), { timeout: 20000 });
+    const req = { round, category, difficulty, avoid };
+    const res = await post({ mission: req }, missionRequest(MODELS.judge.id, req), { timeout: 20000 });
     const data = await res.json();
-    return currentMode() === 'direct' ? parseMission(data, { round, category }) : data.mission;
+    return currentMode() === 'direct' ? parseMission(data, req) : data.mission;
   } catch {
     return null;
   }

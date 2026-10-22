@@ -1,7 +1,7 @@
 // 🏆 미션 결과: 속이기 1라운드(원리 모름) vs 2라운드(원리로 공략) 비교
 import { store, getMissionStats, missionMessages } from '../store.js';
 import { h, add, pct, short } from '../ui.js';
-import { CATEGORIES } from '../missions.js';
+import { CATEGORIES, MISSIONS_PER_ROUND } from '../missions.js';
 
 export function mount(el) {
   const [r1, r2] = getMissionStats();
@@ -35,7 +35,7 @@ function roundCard(r, sub) {
       ? [
         h('div.round-rate', pct(r.rate, 0)),
         h('div.round-bar', h('div.round-bar-fill', { style: { width: r.rate * 100 + '%' } })),
-        h('p.round-detail', `미션 ${r.played}개 중 `, h('b', `${r.success}개 성공`), ` · 얻은 점수 ${r.points}점`),
+        h('p.round-detail', `미션 ${r.played}/${MISSIONS_PER_ROUND}개 중 `, h('b', `${r.success}개 성공`), ` · 점수 ${r.points} / 15점`),
       ]
       : h('p.round-detail.muted', r.round === 2 && store.state.round === 1 ? '아직 2라운드 전이에요.' : '아직 끝난 미션이 없어요.'));
 }
@@ -61,7 +61,7 @@ function missionList(missions) {
       return h('li.mission-row.' + m.status,
         h('span.round-pill.r' + m.round, `${m.round}R`),
         h('div',
-          h('b', m.status === 'success' ? '😈 ' : '🤖 ', m.title), ' ',
+          h('b', m.status === 'success' ? '😈 ' : '🤖 ', m.no ? `${m.no}번 · ` : '', m.title), ' ',
           h('small.muted', `${cat.icon} ${cat.name} · ${'⭐'.repeat(m.difficulty)}`),
           h('p.win-answer', m.goal),
           win && h('p.win-quote', '속은 답: “', short(win.content, 120), '”')));
