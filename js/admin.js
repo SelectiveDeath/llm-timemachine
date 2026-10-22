@@ -2,7 +2,10 @@
 // 비밀번호는 Worker 비밀값(ADMIN_PASSWORD)과 비교하고, 이 탭(sessionStorage)에만 기억한다.
 import { h, clear, confirmDialog, promptDialog, toast } from './ui.js';
 import { MODERN } from './config.js';
-import { STEPS } from './gate.js';
+import { STEPS, GATE_CHANNEL } from './gate.js';
+
+// 같은 브라우저에 열린 학생 화면에는 바로 알린다 (다른 노트북은 3초 안에 스스로 확인)
+const notifyTabs = () => { try { new BroadcastChannel(GATE_CHANNEL).postMessage('changed'); } catch { /* 지원 안 함 */ } };
 
 const KEY = 'llm-timemachine:admin';
 const POLL_MS = 3000;
@@ -78,6 +81,7 @@ async function setStep(step) {
   busy = true;
   try {
     data = await call('set', { step });
+    notifyTabs();
     toast(step === 0 ? '모든 단계를 잠갔어요' : `${stepName(step)} 열림! 학생 화면에 몇 초 안에 반영돼요`);
   } catch (e) {
     toast('실패: ' + e.message);
@@ -94,6 +98,7 @@ async function newClass() {
   busy = true;
   try {
     data = await call('reset');
+    notifyTabs();
     toast('새 수업을 시작했어요. 학생 노트북이 처음 화면으로 돌아가요.');
   } catch (e) {
     toast('실패: ' + e.message);
@@ -115,7 +120,7 @@ function render(offline = false) {
 
   clear(root).append(h('div.admin-wrap',
     h('header.admin-head',
-      h('div', h('h1', '🎛 LLM 타임머신 관리자'), h('p.muted', `수업 id ${data.session} · 3초마다 새로고침`)),
+      h('div', h('h1', '🎛 LLM 타임머신 관리자'), h('p.muted', `수업 id ${data.session} · 단계를 열면 학생 화면이 3초 안에 그 활동으로 넘어가요`)),
       h('button.link-btn.admin-logout', { onclick: () => { sessionStorage.removeItem(KEY); password = null; showLogin(); } }, '나가기')),
     offline && h('div.card.admin-offline', '⚠️ 서버와 연결이 잠시 끊겼어요. 다시 연결을 시도하는 중이에요.'),
 

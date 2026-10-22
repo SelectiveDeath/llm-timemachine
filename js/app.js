@@ -78,9 +78,16 @@ function summary() {
 function onGate({ step, prevStep }) {
   renderSteps();
   syncRound();
+  // 새 단계가 열리면 모든 학생 화면을 그 활동으로 데려간다
   if (step > prevStep) {
     const opened = STEPS.find((s) => s.n === step);
-    if (opened) toast(`${opened.icon} ${opened.label}이(가) 열렸어요!`, 3500);
+    if (opened) {
+      toast(`${opened.icon} ${opened.label}이(가) 열렸어요!`, 3500);
+      if (current?.name !== opened.view) {
+        location.hash = '#/' + opened.view; // hashchange → route()
+        return;
+      }
+    }
   }
   // 보고 있던 화면의 잠금 상태가 바뀌었거나 라운드가 바뀌었으면 다시 그린다
   if (current && (current.locked !== !gate.isOpen(current.name) || current.round !== store.state.round)) {

@@ -19,8 +19,10 @@ export const MAX_STEP = STEPS.length;
 const VIEW_STEP = { modern: 1, results: 1, principle: 2, past: 3, dex: 3, report: 5 };
 export const viewStep = (view) => VIEW_STEP[view] ?? 1;
 
-const POLL_MS = 4000;
-const HEARTBEAT_EVERY = 3; // 3번에 한 번(약 12초마다) 조 현황 기록
+const POLL_MS = 3000;
+const HEARTBEAT_EVERY = 4; // 4번에 한 번(약 12초마다) 조 현황 기록
+// 같은 브라우저의 관리자 패널이 단계를 바꾸면 기다리지 않고 바로 확인하도록 알리는 채널
+export const GATE_CHANNEL = 'llm-timemachine-gate';
 
 const listeners = new Set();
 let timer = null, polls = 0;
@@ -37,7 +39,11 @@ export const gate = {
   // summary(): 관리자 패널에 보여 줄 조 현황 요약
   start(summary) {
     if (timer || ungated()) return;
+    let inFlight = false;
     const tick = async () => {
+      clearTimeout(timer);
+      if (inFlight) return;
+      inFlight = true;
       try {
         const res = await fetch(MODERN.workerUrl, {
           method: 'POST',
@@ -51,9 +57,14 @@ export const gate = {
       } catch {
         setOnline(false); // 연결이 끊겨도 마지막으로 열린 단계까지는 계속 쓸 수 있다
       }
+      inFlight = false;
       timer = setTimeout(tick, POLL_MS);
     };
     tick();
+    // 뒤에 있던 탭은 브라우저가 타이머를 늦추므로, 다시 보이는 순간 바로 확인
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+    window.addEventListener('focus', tick);
+    try { new BroadcastChannel(GATE_CHANNEL).onmessage = tick; } catch { /* 지원하지 않는 브라우저 */ }
   },
 };
 
