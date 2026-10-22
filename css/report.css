@@ -129,3 +129,6 @@
 .round-msg div p + p { margin-top: 6px; }
 @media (max-width: 900px) { .rounds-grid.three { grid-template-columns: 1fr; } }
 .dex-mission { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+
+/* 이어 붙인 여러 줄 질문 */
+.cmp-question, .present-q h2 { white-space: pre-line; }

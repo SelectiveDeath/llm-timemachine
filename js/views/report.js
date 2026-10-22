@@ -64,9 +64,11 @@ function candidates() {
     if (!ai) continue;
     const q = questionBefore(msgs, msgs.indexOf(ai));
     if (!q) continue;
+    // 그 답이 나오기까지 학생이 보낸 질문을 모두 이어 붙인다 (마지막 질문만 보내면 "그 책" 같은 말을 이해 못 함)
+    const question = msgs.slice(0, msgs.indexOf(q) + 1).filter((x) => x.role === 'user').map((x) => x.content).join('\n');
     const isPast = m.bucket === 'past';
     out.push({
-      ref: 'm:' + m.id, source: isPast ? 'past' : 'round1', question: q.content, mission: m.title,
+      ref: 'm:' + m.id, source: isPast ? 'past' : 'round1', question, mission: m.title,
       oldAnswer: isPast ? ai.content : null, modernAnswer: isPast ? null : ai.content,
       side: isPast ? 'old' : 'new', success: m.status === 'success',
       // 현대 LLM은 안 속었는데 과거 LLM은 속은 미션이 가장 인상적인 비교
@@ -136,7 +138,7 @@ const patch = (id, p) => store.update((s) => {
   if (it) Object.assign(it, p);
 }, { silent: true });
 
-// 대화 맥락 없이 질문 하나만 보낸다
+// 학생이 보낸 질문들을 이어 붙인 것을 한 번에 보낸다
 async function fill(id, era) {
   const it = items().find((x) => x.id === id);
   if (!it) return;

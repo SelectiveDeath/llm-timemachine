@@ -7,10 +7,20 @@ GitHub Pages는 파일을 10분 동안 캐시하라고 알려 주기 때문에, 
 
 사용: python tools/cachebust.py
 """
-import hashlib, json, pathlib, re
+import hashlib, json, pathlib, re, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGES = ['index.html', 'admin.html']
+
+# 먼저 모든 JS의 문법을 검사한다 (깨진 파일이 배포되지 않도록)
+broken = []
+for js in sorted((ROOT / 'js').rglob('*.js')) + sorted((ROOT / 'worker').glob('*.js')):
+    r = subprocess.run(['node', '--check', str(js)], capture_output=True, text=True, encoding='utf-8', errors='replace')
+    if r.returncode != 0:
+        broken.append(f'{js.relative_to(ROOT)}\n{r.stderr.strip()}')
+if broken:
+    print('문법 오류가 있어서 중단합니다:\n\n' + '\n\n'.join(broken))
+    sys.exit(1)
 
 files = sorted(p for d in ('js', 'css') for p in (ROOT / d).rglob('*') if p.suffix in ('.js', '.css'))
 digest = hashlib.sha256()
