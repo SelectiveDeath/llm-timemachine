@@ -1,0 +1,24 @@
+# Python / 모델 변환 작업물
+tools/.venv/
+tools/out/
+tools/hf-cache/
+__pycache__/
+
+# 변환된 모델 (배포는 Hugging Face)
+models/
+*.onnx
+
+# 원본 발표자료 (공개 저장소에 올리지 않음)
+*.pdf
+
+# 개발용 키 (절대 커밋 금지)
+.dev-key*
+*.key
+
+# 기타
+node_modules/
+.DS_Store
+Thumbs.db
+
+# 로컬 도구 설정
+.claude/
