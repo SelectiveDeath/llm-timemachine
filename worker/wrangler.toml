@@ -1,0 +1,11 @@
+name = "llm-timemachine"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+MODEL = "gpt-5.4-mini"
+ALLOWED_ORIGINS = "https://selectivedeath.github.io, http://localhost:3000"
+ENABLED = "true"
+
+# OpenAI 키는 여기에 쓰지 않는다. 아래 명령으로 비밀값으로 넣는다.
+#   npx wrangler secret put OPENAI_API_KEY

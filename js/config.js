@@ -15,7 +15,7 @@ export const OLD_MODEL = {
 //  - worker: 수업용. Cloudflare Worker를 거쳐 OpenAI 호출 (키는 Worker에만 있음)
 export const MODERN = {
   mode: 'mock',
-  model: '', // 8단계에서 확정. direct 모드에서는 개발자 입력창에서 지정 가능
+  model: 'gpt-5.4-mini', // direct 모드용 (worker 모드에서는 Worker의 MODEL 설정을 씀)
   workerUrl: '', // 8단계에서 Worker 주소 입력
 };
 

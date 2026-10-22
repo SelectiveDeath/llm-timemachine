@@ -22,3 +22,7 @@ Thumbs.db
 
 # 로컬 도구 설정
 .claude/
+
+# Cloudflare Worker 로컬 개발 파일 (.dev.vars에는 키가 들어감)
+worker/.dev.vars
+worker/.wrangler/

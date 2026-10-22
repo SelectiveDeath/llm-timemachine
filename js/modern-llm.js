@@ -62,6 +62,11 @@ export async function chat(messages, { onToken, signal } = {}) {
 }
 
 function errorMessage(status, text) {
+  // Worker가 보낸 한국어 안내 문구가 있으면 그대로 보여 준다
+  try {
+    const msg = JSON.parse(text).error;
+    if (typeof msg === 'string' && /[가-힣]/.test(msg)) return msg;
+  } catch { /* JSON이 아니면 아래 기본 문구 */ }
   if (status === 429) return '지금 요청이 너무 많아요. 10초 정도 기다렸다가 다시 보내 주세요.';
   if (status === 401 || status === 403) return '현대 LLM 연결 권한에 문제가 있어요. 선생님께 알려 주세요.';
   if (status === 400 && /content|policy|safety/i.test(text)) return '이 질문은 보낼 수 없어요. 다른 질문으로 도전해 보세요.';
