@@ -192,7 +192,19 @@ function missionCard(m) {
       h('span.mc-tries', '남은 질문 ',
         Array.from({ length: MISSION_TRIES }, (_, i) => h('i.dot' + (i < tries ? '.used' : ''))),
         h('b', ` ${Math.max(0, MISSION_TRIES - tries)}/${MISSION_TRIES}`)),
-      m.status === 'active' && h('button.btn.btn-sm', { onclick: () => giveUp(m.id) }, '🏳️ 포기하고 다른 미션')));
+      m.status === 'active' && h('span.mc-actions',
+        h('button.btn.btn-sm', { onclick: () => reportBad(m.id), title: '미션이 사실과 다르거나 말이 안 되면' }, '🚩 미션이 이상해요'),
+        h('button.btn.btn-sm', { onclick: () => giveUp(m.id) }, '🏳️ 포기하고 다른 미션'))));
+}
+
+// AI가 만든 미션은 가끔 틀릴 수 있어서, 이상한 미션은 점수 없이 바꿀 수 있게 한다
+async function reportBad(id) {
+  if (controller) return;
+  if (!(await confirmDialog('이 미션이 사실과 다르거나 말이 안 되나요?\n점수 변화 없이 새 미션으로 바꿔요.', { ok: '미션 바꾸기' }))) return;
+  store.update((st) => {
+    st.modern.missions.find((x) => x.id === id).status = 'cancel';
+  });
+  renderBody();
 }
 
 async function giveUp(id) {

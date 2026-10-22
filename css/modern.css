@@ -180,3 +180,4 @@
 .composer-box.locked { opacity: .45; }
 .composer-lock { text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
 .composer-lock:empty { display: none; }
+.mc-actions { display: inline-flex; gap: 6px; flex-wrap: wrap; }
