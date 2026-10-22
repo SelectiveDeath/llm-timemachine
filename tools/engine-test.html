@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>과거 LLM 엔진 측정</title>
+<style>
+  body { font: 15px/1.6 system-ui, sans-serif; max-width: 860px; margin: 24px auto; padding: 0 16px; }
+  pre { background: #f3f4f6; padding: 12px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>과거 LLM 엔진 측정</h1>
+<p>로컬 서버(<code>npx serve .</code>)로 저장소 루트를 띄운 뒤 <code>/tools/engine-test.html</code>로 엽니다.</p>
+<button id="run">측정 시작</button>
+<pre id="log"></pre>
+<script type="module">
+import { oldLLM, displayToken } from '../js/old-llm.js';
+
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+window.__results = null;
+
+document.getElementById('run').onclick = run;
+if (location.hash === '#auto') run();
+
+async function run() {
+  const results = {};
+  try {
+    let lastPct = -10;
+    oldLLM.subscribe((s) => {
+      const pct = Math.floor(s.progress * 100);
+      if (s.status === 'loading' && pct >= lastPct + 10) { lastPct = pct; log(`로딩 ${pct}%`); }
+    });
+    const t0 = performance.now();
+    const r = await oldLLM.load();
+    results.loadMs = Math.round(performance.now() - t0);
+    log(`로딩 완료: ${results.loadMs}ms (스레드 내부 ${r.ms}ms)`);
+
+    // 다음 토큰: 첫 호출(예열) + 반복 측정
+    const prompts = ['오늘 점심에 먹은', '대한민국의 수도는', '옛날 옛적에 어느 마을에', '인공지능은 앞으로', ''];
+    results.next = [];
+    for (const p of prompts) {
+      const n = await oldLLM.next(p, { k: 5 });
+      const top = n.candidates.map((c) => `${displayToken(c.token).text}(${(c.prob * 100).toFixed(1)}%)`).join(' ');
+      results.next.push({ p, ms: n.ms });
+      log(`next "${p}" ${n.ms}ms  →  ${top}   [입력 토큰: ${n.inputTokens.join(' ')}]`);
+    }
+    const long = '어제 친구들과 함께 학교 앞 분식집에 가서 떡볶이와 순대를 먹고 나서 노래방에 갔는데 거기서';
+    const cold = await oldLLM.next(long, { k: 5, noCache: true });
+    results.nextLongMs = cold.ms;
+    log(`next (긴 문장 ${cold.inputTokens.length}토큰, 캐시 없음) ${cold.ms}ms`);
+
+    // 타이핑 흉내: 한 글자씩 늘려 가며 호출 (같이 쓰기 상황)
+    const typing = [];
+    await oldLLM.next('', { noCache: true });
+    for (let i = 1; i <= long.length; i++) {
+      const n = await oldLLM.next(long.slice(0, i), { k: 5 });
+      typing.push(n.ms);
+    }
+    const warm = await oldLLM.next(long, { k: 5 });
+    const same = warm.candidates.every((c, i) => c.token === cold.candidates[i].token && Math.abs(c.prob - cold.candidates[i].prob) < 1e-3);
+    results.typing = { max: Math.max(...typing), avg: Math.round(typing.reduce((a, b) => a + b) / typing.length), same };
+    const fmt = (n) => n.candidates.map((c) => `${displayToken(c.token).text}(${(c.prob * 100).toFixed(2)}%)`).join(' ');
+    log(`  캐시 없음: ${fmt(cold)}
+  캐시 사용: ${fmt(warm)}`);
+    log(`타이핑 흉내 ${typing.length}회: 평균 ${results.typing.avg}ms, 최대 ${results.typing.max}ms, 캐시 결과 일치: ${same}`);
+
+    // 이어 쓰기 속도
+    let streamed = '';
+    const g = await oldLLM.generate('옛날 옛적에', { maxTokens: 40, temperature: 0.8 }, (t) => (streamed += t));
+    results.gen = g;
+    log(`generate ${g.ms}ms, ${g.tokPerSec} tok/s\n  → 옛날 옛적에${g.text}`);
+
+    // 질문 형식 후보
+    const formats = {
+      A: (q) => `질문: ${q}\n답변:`,
+      B: (q) => `Q: ${q}\nA:`,
+      C: (q) => `${q}\n`,
+    };
+    const qs = ['해리 포터를 쓴 사람은 누구인가요?', '『서울의 파란 코끼리』를 쓴 작가는 누구인가요?'];
+    results.qa = {};
+    for (const [name, f] of Object.entries(formats)) {
+      for (const q of qs) {
+        const a = await oldLLM.generate(f(q), { maxTokens: 40, temperature: 0.8, stopAtNewline: true });
+        (results.qa[name] ??= []).push(a.text);
+        log(`형식 ${name} | ${q}\n  → ${a.text}`);
+      }
+    }
+    log('끝');
+  } catch (e) {
+    results.error = e.message;
+    log('오류: ' + e.message);
+  }
+  window.__results = results;
+}
+</script>
+</body>
+</html>

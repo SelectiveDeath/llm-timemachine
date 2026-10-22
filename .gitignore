@@ -1,5 +1,5 @@
 # Python / 모델 변환 작업물
-tools/.venv/
+tools/.venv*/
 tools/out/
 tools/hf-cache/
 __pycache__/
