@@ -100,7 +100,7 @@
 .strategy-body { display: none; padding: 0 14px 12px; font-size: 14px; color: var(--ink-2); }
 .strategy.open .strategy-body { display: block; }
 .strategy-body p { margin: 0 0 6px; }
-.principle { color: #6d28d9; font-weight: 600; }
+.strategy-principle { color: #6d28d9; font-weight: 600; }
 .panel-hint { margin: -4px 0 10px; font-size: 13px; color: var(--ink-3); }
 .checker-label { display: block; font-size: 13px; font-weight: 700; margin: 14px 0 6px; }
 .checker-text { resize: vertical; margin-bottom: 6px; }
@@ -121,14 +121,62 @@
   .chat-top { padding-left: 60px; }
 }
 
-/* 🤖 AI 심판 의견 */
-.judge { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
-.judge-label { font-weight: 700; color: var(--ink-2); margin-right: 2px; }
-.judge-wait { color: var(--ink-3); }
-.jchip { padding: 2px 8px; border-radius: 6px; background: #f4f5f8; color: var(--ink-3); }
-.jchip b { font-variant-numeric: tabular-nums; }
-.jchip.top.fooled { background: var(--old-soft); color: #b45309; }
-.jchip.top.unknown, .jchip.top.correct { background: var(--new-soft); color: var(--new-deep); }
-.judge-note { margin-left: 2px; }
-.judge-note.disagree { color: #7c3aed; font-weight: 700; }
+/* 모델 이름 표시 */
+.model-chip { font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #eef0f5; color: var(--ink-2); }
+
+/* 🎯 미션 카드 */
+.mission-card {
+  position: sticky; top: 0; z-index: 2; background: #fff; border: 2px solid var(--blue); border-radius: 16px;
+  padding: 14px 18px; box-shadow: 0 6px 18px rgba(47, 111, 235, .08);
+}
+.mission-card.token { border-color: #0ea5e9; }
+.mission-card.plausible { border-color: #e85d0c; }
+.mission-card.time { border-color: #16a34a; }
+.mission-card.probability { border-color: #7c3aed; }
+.mission-card.success { border-color: var(--old); background: #fffaf2; }
+.mission-card.fail { border-color: #c9cede; background: #fafbfc; }
+.mc-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; }
+.mc-badge { font-weight: 800; color: var(--blue); }
+.mc-cat { background: var(--bg); padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+.mc-stars { letter-spacing: -2px; }
+.mc-source { margin-left: auto; color: var(--ink-3); }
+.mc-title { margin: 6px 0 2px; font-size: 19px; }
+.mc-goal { margin: 0; color: var(--ink-2); }
+.mc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.mc-tries { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.mc-tries .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); display: inline-block; }
+.mc-tries .dot.used { background: #dfe2ea; }
+
+/* 미션 받기 */
+.empty-emoji.spin { display: inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.chat-empty .btn-lg { margin-top: 18px; }
+.category-picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; }
+.category-pick { border: 2px solid var(--line); background: #fff; border-radius: 14px; padding: 14px 10px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.category-pick:hover { border-color: var(--blue); background: var(--blue-soft); }
+.cp-icon { font-size: 24px; }
+
+/* 속은 답 강조 */
+.msg.assistant.win .msg-main { background: #fff7e8; border: 2px solid var(--old); border-radius: 14px; padding: 10px 14px; }
+.win-badge { display: inline-block; background: var(--old); color: #fff; font-weight: 800; font-size: 13px; padding: 2px 10px; border-radius: 999px; margin-bottom: 6px; }
+
+/* 🤖 AI 심판 */
+.judge { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink-3); }
+.judge-label { font-weight: 700; color: var(--ink-2); }
+.judge-meter { width: 90px; height: 8px; border-radius: 999px; background: #eef0f5; overflow: hidden; }
+.judge-fill { display: block; height: 100%; background: #b7bdcc; border-radius: 999px; }
+.judge-fill.hit { background: var(--old); }
 .judge .link { background: none; border: 0; padding: 0; color: var(--blue); cursor: pointer; font-size: 12px; text-decoration: underline; }
+
+/* 미션 결과 배너 */
+.result-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 16px; }
+.result-banner.win { background: #fff4e0; border: 2px solid var(--old); }
+.result-banner.lose { background: #f3f5f8; border: 2px solid #dfe2ea; }
+.result-banner > div:nth-child(2) { flex: 1; }
+.result-banner p { margin: 2px 0 0; font-size: 14px; color: var(--ink-2); }
+.rb-emoji { font-size: 34px; }
+
+/* 입력 잠금 */
+.composer-box.locked { opacity: .45; }
+.composer-lock { text-align: center; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-top: 6px; }
+.composer-lock:empty { display: none; }

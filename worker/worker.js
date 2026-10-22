@@ -1,21 +1,24 @@
-// LLM 타임머신 · 현대 LLM 중계 서버 (Cloudflare Worker)
+// LLM 타임머신 · OpenAI 중계 서버 (Cloudflare Worker)
 // 학생 브라우저 → 이 Worker → OpenAI. OpenAI 키는 Worker 비밀값(OPENAI_API_KEY)에만 있다.
 //
 // 설정값 (wrangler.toml [vars] 또는 Cloudflare 대시보드)
-//  - MODEL:           사용할 모델 (기본 gpt-5.4-mini)
+//  - MODEL:           현대 LLM (기본 gpt-5.4-mini). 미션 생성과 심판도 이 모델을 쓴다
+//  - PAST_MODEL:      과거 LLM (기본 gpt-3.5-turbo)
 //  - ALLOWED_ORIGINS: 요청을 받을 사이트 주소, 쉼표로 구분
 //  - ENABLED:         "false"로 바꾸면 모든 요청 거절 (수업 후 끄기용)
 // 비밀값
 //  - OPENAI_API_KEY
 //
 // 요청 종류
-//  - { messages: [...] }                     → 채팅 (스트리밍)
-//  - { judge: { question, answer, facts } }  → AI 심판 판정 (확률 JSON)
+//  - { messages: [...], era: 'modern'|'past' }           → 채팅 (스트리밍)
+//  - { judge: { goal, messages, facts } }                → 미션 판정 { success: 0~1 }
+//  - { mission: { round, category, avoid } }             → 미션 생성 { mission | null }
 
-import { judgeRequest, parseJudge, JUDGE_LIMITS } from '../js/judge.js';
+import { judgeRequest, parseJudge, checkJudgeInput } from '../js/judge.js';
+import { missionRequest, parseMission, ROUND_CATEGORIES } from '../js/missions.js';
 
 const LIMITS = {
-  maxMessages: 21,        // 사이트는 최근 20개 + 새 질문을 보낸다
+  maxMessages: 21, // 사이트는 최근 20개 + 새 질문을 보낸다
   maxCharsPerMessage: 4000,
   maxCharsTotal: 16000,
   maxCompletionTokens: 700,
@@ -42,9 +45,12 @@ export default {
       return json({ error: '요청 형식이 올바르지 않아요.' }, 400, cors);
     }
 
-    if (body?.judge) return handleJudge(body.judge, env, cors);
+    const modern = env.MODEL || 'gpt-5.4-mini';
+    if (body?.judge) return handleJudge(body.judge, modern, env, cors);
+    if (body?.mission) return handleMission(body.mission, modern, env, cors);
 
-    // 사이트가 보내는 형식만 통과: [{ role: 'user'|'assistant', content: string }]
+    // 채팅: 사이트가 보내는 형식만 통과 [{ role: 'user'|'assistant', content: string }]
+    const model = body?.era === 'past' ? env.PAST_MODEL || 'gpt-3.5-turbo' : modern;
     const messages = Array.isArray(body?.messages) ? body.messages : null;
     if (!messages?.length || messages.length > LIMITS.maxMessages) return json({ error: '메시지 수가 올바르지 않아요.' }, 400, cors);
     let total = 0;
@@ -55,24 +61,14 @@ export default {
     }
     if (total > LIMITS.maxCharsTotal) return json({ error: '대화가 너무 길어요. "새 대화"를 눌러 주세요.' }, 413, cors);
 
-    const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: env.MODEL || 'gpt-5.4-mini',
-        messages: messages.map(({ role, content }) => ({ role, content })),
-        max_completion_tokens: LIMITS.maxCompletionTokens,
-        stream: true,
-        ...(body.logprobs ? { logprobs: true, top_logprobs: 3 } : {}),
-      }),
+    const upstream = await openai(env, {
+      model,
+      messages: messages.map(({ role, content }) => ({ role, content })),
+      // gpt-3.5-turbo 같은 예전 모델은 max_completion_tokens 대신 max_tokens를 쓴다
+      ...(model.startsWith('gpt-3') ? { max_tokens: LIMITS.maxCompletionTokens } : { max_completion_tokens: LIMITS.maxCompletionTokens }),
+      stream: true,
     });
-
-    if (!upstream.ok) {
-      // OpenAI 오류 내용은 그대로 넘기지 않고 상태 코드만 전달 (키, 계정 정보 노출 방지)
-      const text = await upstream.text();
-      const policy = /content|policy|safety/i.test(text);
-      return json({ error: policy ? 'policy' : 'upstream' }, upstream.status === 429 ? 429 : policy ? 400 : 502, cors);
-    }
+    if (!upstream.ok) return upstreamError(upstream, cors);
 
     // OpenAI 스트리밍(SSE) 응답을 그대로 흘려보낸다
     return new Response(upstream.body, {
@@ -81,22 +77,41 @@ export default {
   },
 };
 
-async function handleJudge(j, env, cors) {
-  const ok = (v, max) => typeof v === 'string' && v.length <= max;
-  if (!ok(j.question, JUDGE_LIMITS.question) || !ok(j.answer, JUDGE_LIMITS.answer) || (j.facts != null && !ok(j.facts, JUDGE_LIMITS.facts))) {
-    return json({ error: '판정 요청 형식이 올바르지 않아요.' }, 400, cors);
-  }
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+async function handleJudge(j, model, env, cors) {
+  const problem = checkJudgeInput(j);
+  if (problem) return json({ error: problem }, 400, cors);
+  const res = await openai(env, judgeRequest(model, j));
+  if (!res.ok) return upstreamError(res, cors);
+  const success = parseJudge(await res.json());
+  if (success === null) return json({ error: '판정 결과를 읽지 못했어요.' }, 502, cors);
+  return json({ success }, 200, cors);
+}
+
+async function handleMission(m, model, env, cors) {
+  const round = m?.round === 2 ? 2 : 1;
+  const category = ROUND_CATEGORIES[round].includes(m?.category) ? m.category : ROUND_CATEGORIES[round][0];
+  const avoid = (Array.isArray(m?.avoid) ? m.avoid : []).filter((t) => typeof t === 'string').slice(-20).map((t) => t.slice(0, 30));
+  const res = await openai(env, missionRequest(model, { round, category, avoid }));
+  if (!res.ok) return upstreamError(res, cors);
+  return json({ mission: parseMission(await res.json(), { round, category }) }, 200, cors);
+}
+
+function openai(env, payload) {
+  return fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(judgeRequest(env.MODEL || 'gpt-5.4-mini', j)),
+    body: JSON.stringify(payload),
   });
-  if (!res.ok) return json({ error: 'upstream' }, res.status === 429 ? 429 : 502, cors);
-  const probs = parseJudge(await res.json());
-  if (!probs) return json({ error: '판정 결과를 읽지 못했어요.' }, 502, cors);
-  return json({ probs }, 200, cors);
+}
+
+// OpenAI 오류 내용은 그대로 넘기지 않고 상태 코드만 전달 (키, 계정 정보 노출 방지)
+async function upstreamError(res, cors) {
+  const text = await res.text();
+  const policy = /content|policy|safety/i.test(text);
+  return json({ error: policy ? 'policy' : 'upstream' }, res.status === 429 ? 429 : policy ? 400 : 502, cors);
 }
 
 function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } });
 }
+

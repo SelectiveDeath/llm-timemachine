@@ -14,7 +14,7 @@
 <button id="run">측정 시작</button>
 <pre id="log"></pre>
 <script type="module">
-import { oldLLM, displayToken } from '../js/old-llm.js';
+import { kogpt2 as oldLLM, displayToken } from '../js/kogpt2.js';
 
 const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
 window.__results = null;

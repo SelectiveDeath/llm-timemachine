@@ -1,5 +1,5 @@
-// 과거 LLM(KoGPT2) 메인 화면 쪽 창구.
-// 실제 계산은 old-llm-thread.js(백그라운드 스레드)가 하고, 여기서는 메시지만 주고받는다.
+// 원리 체험용 KoGPT2 메인 화면 쪽 창구.
+// 실제 계산은 kogpt2-thread.js(백그라운드 스레드)가 하고, 여기서는 메시지만 주고받는다.
 import { OLD_MODEL } from './config.js';
 
 let worker = null;
@@ -7,7 +7,7 @@ let seq = 0;
 const pending = new Map(); // id → { resolve, reject, onProgress, onToken }
 let loadPromise = null;
 
-export const oldLLM = {
+export const kogpt2 = {
   status: 'idle', // idle | loading | ready | error
   error: null,
   progress: 0,
@@ -73,7 +73,7 @@ export const oldLLM = {
 
 function getWorker() {
   if (worker) return worker;
-  worker = new Worker(new URL('./old-llm-thread.js', import.meta.url), { type: 'module' });
+  worker = new Worker(new URL('./kogpt2-thread.js', import.meta.url), { type: 'module' });
   worker.onmessage = ({ data }) => {
     const p = pending.get(data.id);
     if (!p) return;

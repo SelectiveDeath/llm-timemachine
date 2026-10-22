@@ -23,7 +23,7 @@
 .sum-card.best { border-top-color: var(--old-deep); grid-column: span 1; }
 .sum-label { font-size: 13px; font-weight: 700; color: var(--ink-2); }
 .sum-num { font-size: 30px; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.sum-quote { font-family: 'Times New Roman', 'Nanum Myeongjo', Batang, serif; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.sum-quote { font-size: 15px; font-weight: 600; line-height: 1.4; }
 .sum-sub { font-size: 12px; color: var(--ink-3); }
 
 .cmp-list { display: flex; flex-direction: column; gap: 16px; }
@@ -37,8 +37,8 @@
 .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
 /* 왼쪽은 과거 데모 사이트 스타일, 오른쪽은 2026 스타일 */
-.cmp-old { background: #f0f0f0; border: 1px solid #c8c8c8; padding: 12px 14px; font-family: 'Times New Roman', 'Nanum Myeongjo', Batang, serif; font-size: 16px; }
-.cmp-old .cmp-label { font-family: Arial, 'Malgun Gothic', sans-serif; color: #b45309; }
+.cmp-old { background: #efeeea; border: 1px solid #d6d4cf; border-radius: 6px; padding: 12px 14px; color: #3b3b3b; filter: grayscale(1); font-family: 'Malgun Gothic', '맑은 고딕', var(--font); }
+.cmp-old .cmp-label { color: #555; }
 .cmp-new { background: var(--new-soft); border-radius: 14px; padding: 12px 16px; }
 .cmp-new .cmp-label { color: var(--new-deep); }
 .cmp-label { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
@@ -83,9 +83,8 @@
 .dex-card.best { border: 2px solid var(--old-deep); background: #fff7ed; }
 .dex-ribbon { position: absolute; top: -12px; left: 16px; background: var(--old-deep); color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
 .dex-q { margin: 0; font-size: 17px; }
-.dex-answers { margin: 0; padding-left: 20px; font-family: 'Times New Roman', 'Nanum Myeongjo', Batang, serif; font-size: 15px; color: #333; }
-.dex-answers li { margin-bottom: 4px; }
-.dex-more { margin: 0; font-size: 12px; color: var(--ink-3); }
+.dex-answer { font-size: 14px; color: #333; background: #f3f2ee; border-radius: 6px; padding: 8px 12px; filter: grayscale(1); }
+.dex-answer p { margin: 0 0 6px; }
 .dex-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
 
 /* ── 라운드 결과 ── */
@@ -109,3 +108,7 @@
 @media (max-width: 760px) { .rounds-grid { grid-template-columns: 1fr; } }
 .disagree-card { margin-bottom: 16px; border-left: 4px solid #7c3aed; }
 .disagree-card .muted { margin: -6px 0 12px; }
+
+/* 미션 기록 */
+.mission-row.fail b { color: var(--ink-2); }
+.win-quote { margin: 4px 0 0; font-size: 14px; color: #b45309; }

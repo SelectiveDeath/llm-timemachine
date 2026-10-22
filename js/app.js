@@ -1,20 +1,24 @@
 // 앱 시작점: 조 이름 입력, 사이드바, 화면 전환
 import { store } from './store.js';
 import { h, clear, confirmDialog, promptDialog, toast } from './ui.js';
-import { oldLLM } from './old-llm.js';
+import { kogpt2 } from './kogpt2.js';
 import { currentMode, isDev, getDevSettings, setDevSettings } from './modern-llm.js';
+import { MODELS } from './config.js';
 import * as modernView from './views/modern.js';
-import * as retroView from './views/retro.js';
+import * as principleView from './views/principle.js';
+import * as pastView from './views/past.js';
 import * as reportView from './views/report.js';
 import * as dexView from './views/dex.js';
-import * as roundsView from './views/rounds.js';
+import * as resultsView from './views/results.js';
 
+const tag = (m) => `${m.id} · ${m.year}`;
 const VIEWS = {
-  modern: { icon: '✨', label: '2026 채팅', sub: '현대 LLM', view: modernView },
-  retro: { icon: '📼', label: '과거 LLM', sub: 'KoGPT2', view: retroView },
+  modern: { icon: '✨', label: '현대 LLM', sub: tag(MODELS.modern), view: modernView },
+  principle: { icon: '🧩', label: '원리 체험', sub: tag(MODELS.principle), view: principleView },
+  past: { icon: '📼', label: '과거 LLM', sub: tag(MODELS.past), view: pastView },
   report: { icon: '⚖️', label: '비교 리포트', sub: '과거 vs 현대', view: reportView },
-  dex: { icon: '🃏', label: '환각 도감', view: dexView, secondary: true },
-  rounds: { icon: '🏆', label: '라운드 결과', view: roundsView, secondary: true },
+  dex: { icon: '🃏', label: '환각 도감', view: dexView },
+  results: { icon: '🏆', label: '미션 결과', view: resultsView },
 };
 
 const app = document.getElementById('app');
@@ -53,8 +57,8 @@ function start() {
   window.addEventListener('hashchange', route);
   route();
 
-  // 과거 LLM 모델은 미리 받아 둔다 (활동 2 전에 다운로드가 끝나 있도록)
-  oldLLM.load().catch(() => {});
+  // 원리 체험용 KoGPT2는 미리 받아 둔다 (파트 1.5 전에 다운로드가 끝나 있도록)
+  kogpt2.load().catch(() => {});
 }
 
 function route() {
@@ -88,20 +92,20 @@ function buildSidebar() {
   store.subscribe(renderTeam);
 
   const oldStatus = h('div.status-line');
-  oldLLM.subscribe((s) => {
+  kogpt2.subscribe((s) => {
     const label = {
       idle: '대기 중',
       loading: s.progress >= 1 ? '준비 중…' : `불러오는 중 ${Math.floor(s.progress * 100)}%`,
       ready: '준비됨',
       error: '불러오기 실패',
     }[s.status];
-    oldStatus.replaceChildren(h('span.status-dot.' + s.status), `과거 LLM · ${label}`);
+    oldStatus.replaceChildren(h('span.status-dot.' + s.status), `원리 체험 모델 · ${label}`);
   });
 
   const mode = currentMode();
   const modernStatus = mode === 'worker' ? null : h('div.status-line',
     h('span.status-dot.' + (mode === 'mock' ? 'idle' : 'ready')),
-    mode === 'mock' ? '현대 LLM · 연습 모드(가짜 답변)' : '현대 LLM · 개발 모드');
+    mode === 'mock' ? 'GPT · 연습 모드(가짜 답변)' : 'GPT · 개발 모드');
 
   const toggle = h('button.nav-toggle', { 'aria-label': '메뉴', onclick: () => document.body.classList.toggle('nav-open') }, '☰');
 
@@ -109,9 +113,9 @@ function buildSidebar() {
     toggle,
     h('div.brand', h('span.brand-icon', '⏳'), h('span', 'LLM 타임머신')),
     h('nav.nav',
-      ['modern', 'retro', 'report'].map(navItem),
+      ['modern', 'principle', 'past', 'report'].map(navItem),
       h('div.nav-divider'),
-      ['dex', 'rounds'].map(navItem)),
+      ['dex', 'results'].map(navItem)),
     h('div.sidebar-foot',
       oldStatus,
       modernStatus,
@@ -129,7 +133,7 @@ async function renameTeam() {
 }
 
 async function resetAll() {
-  const ok = await confirmDialog('이 노트북의 모든 기록(채팅, 점수, 환각 도감, 리포트)을 지울까요?\n지운 기록은 되돌릴 수 없어요.', { ok: '모두 지우기', danger: true });
+  const ok = await confirmDialog('이 노트북의 모든 기록(미션, 채팅, 환각 도감, 리포트)을 지울까요?\n지운 기록은 되돌릴 수 없어요.', { ok: '모두 지우기', danger: true });
   if (!ok) return;
   current?.view.unmount?.();
   current = null;
@@ -142,8 +146,6 @@ async function devSettings() {
   const s = getDevSettings();
   const key = await promptDialog('개발 모드: OpenAI API 키 (이 브라우저에만 저장, 저장소에는 올라가지 않음)', { value: s.key, placeholder: 'sk-...' });
   if (key === null) return;
-  const model = await promptDialog('개발 모드: 모델 이름', { value: s.model, placeholder: '예: 모델 ID' });
-  if (model === null) return;
-  setDevSettings({ key, model });
+  setDevSettings({ key });
   toast('저장했어요. 새로고침하면 적용돼요.');
 }

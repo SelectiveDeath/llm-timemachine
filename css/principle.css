@@ -1,0 +1,53 @@
+/* 🧩 원리 체험: KoGPT2로 다음 말 확률 보기 (깔끔한 실험 도구 느낌) */
+.principle { max-width: 900px; }
+.pr-model { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--ink-2); font-size: 14px; margin: -8px 0 16px; }
+.pr-loading, .pr-error { margin-bottom: 14px; }
+.pr-error { background: #fef2f2; color: var(--danger); }
+.pr-progress { height: 8px; background: var(--bg); border-radius: 999px; overflow: hidden; margin: 8px 0 4px; }
+.pr-progress-bar { height: 100%; background: var(--blue); transition: width .2s; }
+
+.pr-card { margin-bottom: 14px; }
+.pr-help { margin: 0 0 10px; color: var(--ink-2); font-size: 14px; }
+.pr-help kbd { font-family: inherit; font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg); }
+.pr-examples { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; font-size: 13px; }
+.pr-example { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 3px 12px; cursor: pointer; font-size: 13px; }
+.pr-example:hover { border-color: var(--blue); color: var(--blue); }
+
+/* textarea 뒤에 같은 글자 배치의 층을 깔아 회색 추천 글씨를 보여 준다 */
+.write-wrap { position: relative; border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
+.write-wrap:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+.write-layer, .write-input {
+  font-family: var(--font); font-size: 22px; line-height: 1.6; padding: 14px 16px; margin: 0; border: 0;
+  white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; word-break: keep-all;
+  width: 100%; height: 150px; overflow-y: auto; letter-spacing: normal;
+}
+.write-layer { position: absolute; inset: 0; color: transparent; pointer-events: none; }
+.ghost-text { color: transparent; }
+.ghost { color: #b4b9c6; }
+.write-input { position: relative; display: block; background: transparent; resize: none; outline: none; color: var(--ink); }
+
+.pr-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0 4px; font-size: 14px; }
+.pr-temp { display: inline-flex; align-items: center; gap: 8px; }
+.pr-temp input { width: 140px; }
+.temp-val { min-width: 100px; color: var(--ink-2); }
+.pr-btns { display: inline-flex; gap: 6px; }
+
+.token-line { font-size: 13px; color: var(--ink-2); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-height: 22px; }
+.tok { background: var(--blue-soft); color: var(--blue); border-radius: 6px; padding: 0 7px; font-family: 'Courier New', monospace; }
+
+.prob-card { padding: 16px 18px; }
+.prob-title { font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+.prob-list { display: flex; flex-direction: column; gap: 4px; }
+.prob-row {
+  display: grid; grid-template-columns: 28px minmax(110px, 1.2fr) 3fr 64px; align-items: center; gap: 10px;
+  border: 0; background: none; padding: 6px 8px; border-radius: 10px; cursor: pointer; text-align: left;
+}
+.prob-row:hover { background: var(--bg); }
+.prob-row .rank { color: var(--ink-3); font-size: 13px; text-align: center; }
+.prob-row .cand b { font-size: 18px; font-weight: 600; }
+.prob-row .cand small { margin-left: 6px; color: var(--ink-3); font-size: 11px; }
+.prob-row .bar { height: 12px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+.prob-row .bar-fill { display: block; height: 100%; background: #9db8f5; border-radius: 999px; transition: width .25s; }
+.prob-row .bar-fill.first { background: var(--blue); }
+.prob-row .p { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.pr-note { font-size: 13px; color: var(--ink-2); }

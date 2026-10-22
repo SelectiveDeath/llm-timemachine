@@ -32,6 +32,10 @@ export function factsFor(question) {
     const r = countText(quote[1]);
     facts.push(`질문 속 인용문 "${quote[1]}"의 실제 글자 수: 공백 포함 ${r.all}자, 공백 제외 ${r.noSpace}자.`);
   }
+  if (quote && /거꾸로|뒤집|반대로/.test(question)) {
+    facts.push(`질문 속 인용문 "${quote[1]}"을 거꾸로 쓰면: "${graphemes(quote[1]).reverse().join('')}".`);
+  }
+  if (/strawberry/i.test(question)) facts.push("'strawberry'에 들어 있는 r은 3개.");
   const expr = /[\d,.]+(?:\s*[+\-×x*÷/^]\s*[\d,.]+)+/.exec(question.replace(/(\d)\s*x\s*(\d)/g, '$1×$2'));
   if (expr && /계산|곱|더하|빼|나누|얼마|몇이야|=|×|÷|\*/.test(question)) {
     try { facts.push(`수식 ${expr[0]}의 정확한 계산 결과: ${calc(expr[0]).text}.`); } catch { /* 수식이 아니면 무시 */ }

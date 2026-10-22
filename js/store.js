@@ -1,8 +1,8 @@
 // 조(노트북) 하나의 모든 기록. 브라우저 localStorage에 즉시 저장해서 새로고침해도 유지된다.
-// 점수, 환각 도감, 라운드 결과는 따로 저장하지 않고 아래 기록에서 매번 계산한다.
+// 점수, 환각 도감, 미션 결과는 따로 저장하지 않고 아래 기록에서 매번 계산한다.
 
 const KEY = 'llm-timemachine';
-const VERSION = 1;
+const VERSION = 2;
 
 const fresh = () => ({
   version: VERSION,
@@ -10,20 +10,22 @@ const fresh = () => ({
   view: 'modern',
   round: 1,
   modern: {
-    conv: 1, // 현재 대화 번호 ("새 대화"를 누르면 증가)
-    // { id, conv, round, role: 'user'|'assistant', content, ts, verdict: null|'fooled'|'unknown'|'correct', error? }
+    conv: 1, // 미션 하나 = 대화 하나
+    // { id, conv, round, role: 'user'|'assistant', content, ts, pending?, error?, judge?: 0~1, judgeError? }
+    messages: [],
+    // { id, conv, round, category, difficulty, title, goal, source: 'ai'|'pool', status: 'active'|'success'|'fail'|'cancel', winMsgId, gaveUp?, ts }
+    seen: null, // 결과를 확인하고 넘어간 마지막 미션 id
+    missions: [],
+  },
+  past: {
+    conv: 1,
+    // { id, conv, role, content, ts, pending?, error?, retry?, tags: [], best: false }
     messages: [],
   },
-  retro: {
-    tab: 'write', // write | ask
-    writeText: '',
-    temperature: 1,
-    // { id, question, kind: 'real'|'fake'|null, answers: [], tags: [], best: false, ts }
-    questions: [],
-  },
+  principle: { writeText: '', temperature: 1 },
   report: {
-    // { id, ref, source: 'round1'|'round2'|'retro', question, oldAnswer, modernAnswer,
-    //   verdict, tags, memo, present, oldError, modernError }
+    // { id, ref, source: 'round1'|'round2'|'past', question, mission?, oldAnswer, modernAnswer,
+    //   tags, best, success, memo, present, oldError, modernError }
     items: [],
     generatedAt: null,
   },
@@ -31,15 +33,16 @@ const fresh = () => ({
 
 function migrate(data) {
   if (!data || typeof data !== 'object') return fresh();
-  // 구조가 바뀌면 여기서 옛 기록을 새 구조로 옮긴다.
+  // 버전이 다르면 기록 구조가 달라서 새로 시작한다 (조 이름은 유지)
+  if (data.version !== VERSION) return { ...fresh(), team: data.team ?? null };
   const base = fresh();
   return {
     ...base,
     ...data,
     modern: { ...base.modern, ...data.modern },
-    retro: { ...base.retro, ...data.retro },
+    past: { ...base.past, ...data.past },
+    principle: { ...base.principle, ...data.principle },
     report: { ...base.report, ...data.report },
-    version: VERSION,
   };
 }
 
@@ -70,9 +73,6 @@ export const store = {
   get state() {
     return state;
   },
-  get saveFailed() {
-    return saveFailed;
-  },
   // 기록을 바꿀 때는 항상 update를 거친다 → 즉시 저장 + 화면 갱신 알림
   update(fn, { silent = false } = {}) {
     fn(state);
@@ -96,54 +96,50 @@ export const uid = () => Date.now().toString(36) + Math.random().toString(36).sl
 
 // ── 기록에서 계산하는 값들 ──────────────────────────────
 
-// AI 답변과 그 직전 학생 질문을 짝지어 돌려준다.
-export function getAttempts(round = null) {
-  const msgs = state.modern.messages;
-  const out = [];
-  for (let i = 0; i < msgs.length; i++) {
-    const m = msgs[i];
-    if (m.role !== 'assistant' || m.error) continue;
-    if (round && m.round !== round) continue;
-    let q = null;
-    for (let j = i - 1; j >= 0; j--) {
-      if (msgs[j].role === 'user' && msgs[j].conv === m.conv) { q = msgs[j]; break; }
-    }
-    out.push({ question: q?.content ?? '', answer: m.content, verdict: m.verdict, judge: m.judge ?? null, round: m.round, id: m.id });
-  }
-  return out;
+// 메시지 목록에서 AI 답 바로 앞의 학생 질문 찾기 (같은 대화 안에서)
+export function questionBefore(messages, index) {
+  const conv = messages[index]?.conv;
+  for (let j = index - 1; j >= 0; j--) if (messages[j].role === 'user' && messages[j].conv === conv) return messages[j];
+  return null;
 }
 
+export const missionMessages = (mission) => state.modern.messages.filter((m) => m.conv === mission.conv);
+export const missionTries = (mission) => missionMessages(mission).filter((m) => m.role === 'user').length;
+export const activeMission = () => state.modern.missions.find((m) => m.status === 'active' && m.round === state.round) ?? null;
+
+// 라운드별 점수: 성공한 미션 난이도 합 vs AI 승리(실패한 미션 수)
 export function getScore(round) {
   let team = 0, ai = 0;
-  for (const a of getAttempts(round)) {
-    if (a.verdict === 'fooled') team++;
-    else if (a.verdict === 'unknown' || a.verdict === 'correct') ai++;
+  for (const m of state.modern.missions) {
+    if (m.round !== round) continue;
+    if (m.status === 'success') team += m.difficulty;
+    else if (m.status === 'fail') ai++;
   }
   return { team, ai };
 }
 
-export function getRoundStats() {
+export function getMissionStats() {
   return [1, 2].map((round) => {
-    const judged = getAttempts(round).filter((a) => a.verdict);
-    const fooled = judged.filter((a) => a.verdict === 'fooled');
-    // AI 심판의 1순위 의견과 학생 판정이 다른 경우
-    const disagree = judged.filter((a) => {
-      if (!a.judge) return false;
-      const top = Object.entries(a.judge).sort((x, y) => y[1] - x[1])[0][0];
-      return top !== a.verdict;
-    });
+    const done = state.modern.missions.filter((m) => m.round === round && (m.status === 'success' || m.status === 'fail'));
+    const wins = done.filter((m) => m.status === 'success');
     return {
       round,
-      disagree,
-      tries: judged.length,
-      fooled: fooled.length,
-      rate: judged.length ? fooled.length / judged.length : 0,
-      wins: fooled,
+      played: done.length,
+      success: wins.length,
+      rate: done.length ? wins.length / done.length : 0,
+      points: wins.reduce((s, m) => s + m.difficulty, 0),
+      missions: done,
     };
   });
 }
 
+// 과거 LLM 답 중 관찰 표시가 있는 것 (환각 도감)
 export function getDex() {
-  const qs = state.retro.questions.filter((q) => q.answers.length && (q.tags.length || q.best));
-  return qs.sort((a, b) => (b.best - a.best) || b.ts - a.ts);
+  const msgs = state.past.messages;
+  const out = [];
+  msgs.forEach((m, i) => {
+    if (m.role !== 'assistant' || m.error || !(m.tags?.length || m.best)) return;
+    out.push({ ...m, question: questionBefore(msgs, i)?.content ?? '' });
+  });
+  return out.sort((a, b) => (b.best - a.best) || b.ts - a.ts);
 }
