@@ -6,7 +6,6 @@
 <title>LLM 타임머신 여행 · 발표</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏳</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@2.0.4/dist/qrcode.js"></script>
 <style>
   /* ── 발표 슬라이드: 1920×1080 캔버스를 화면에 맞춰 확대/축소 ───────────────
      조작: → / 스페이스 다음, ← 이전, F 전체 화면, N 발표자 메모, 주소 #번호로 이동
@@ -107,11 +106,12 @@
   .rung .no { font-size: 46px; font-weight: 800; }
   .rung .st { font-size: 20px; letter-spacing: -2px; }
   .rung .pt { font-size: 22px; color: var(--ink2); margin-top: 6px; }
-  .qr-box { display: flex; align-items: center; gap: 28px; padding: 24px 30px; border-radius: 26px; background: #fff; color: #111; }
-  .qr { width: 170px; height: 170px; flex-shrink: 0; }
-  .qr svg { width: 100%; height: 100%; display: block; }
-  .qr-box .where { font-size: 30px; font-weight: 800; }
-  .qr-box .url { font-size: 22px; color: #555; margin-top: 6px; }
+
+  /* 사이트 접속 */
+  .site-url { margin-top: 56px; padding: 50px 64px; border-radius: 36px; background: linear-gradient(135deg, rgba(91, 140, 255, .18), rgba(167, 139, 250, .12)); border: 2px solid rgba(91, 140, 255, .45); box-shadow: 0 0 80px rgba(91, 140, 255, .18); }
+  .site-url .host { font-size: 96px; font-weight: 800; letter-spacing: -2px; line-height: 1.15; word-break: break-all; }
+  .site-url .host .path { color: var(--purple); }
+  .site-url small { display: block; font-size: 26px; color: var(--ink2); font-weight: 700; margin-bottom: 14px; }
 
   /* 섹션 구분 */
   .section { justify-content: center; }
@@ -276,7 +276,19 @@
   <div class="callout f"><span class="em">📝</span><span>시험 보고 → 채점하고 → 오답 노트로 고치고 → 다시 풀기. <b>오늘 만날 LLM도 모두 이렇게 배웠어요.</b></span></div>
 </section>
 
-<!-- 4 활동 1 -->
+<!-- 4 사이트 접속 -->
+<section class="slide" data-notes="노트북마다 이 주소로 접속하게 하세요. 노트북 한 대 = 한 조(2명). 처음에 조 이름을 한 번만 입력하면 계속 기억해요. 왼쪽 '오늘의 순서'를 따라가고, 잠긴 단계(🔒)는 선생님이 열면 화면이 자동으로 넘어가요.">
+  <div class="kicker rise">접속하기</div>
+  <h1 class="rise d1">노트북에서 이 주소로 들어오세요</h1>
+  <div class="site-url rise d2"><small>🌐 주소창에 입력</small><div class="host" data-url-big></div></div>
+  <div class="grid3" style="margin-top: 44px;">
+    <div class="card f" style="padding: 30px 36px;"><p>👥 노트북 한 대 = <b>한 조</b></p></div>
+    <div class="card f" style="padding: 30px 36px;"><p>✏️ <b>조 이름</b>을 한 번만 입력</p></div>
+    <div class="card f" style="padding: 30px 36px;"><p>🔒 잠긴 단계는 <b>선생님이 열어 줘요</b></p></div>
+  </div>
+</section>
+
+<!-- 5 활동 1 -->
 <section class="slide" style="--glow: rgba(34, 197, 94, .2)" data-notes="활동 1. 사이트 ① 현대 LLM 속이기. 미션은 5개이고 갈수록 어려워집니다(⭐ 수 = 점수). 질문 5번 안에 AI가 미션대로 틀린 말을 하면 성공. AI 심판이 판정하고, '그대로 따라 말해'나 '가정해 봐'는 인정되지 않아요. 미션이 이상하면 🚩 버튼으로 바꿀 수 있어요.">
   <div class="kicker rise" style="--k: var(--green)">활동 1</div>
   <h1 class="rise d1">현대 LLM을 <span class="c-green">속여라!</span></h1>
@@ -295,19 +307,19 @@
       <div class="card f" style="padding: 26px 34px;"><p>💬 미션마다 <b>질문 5번</b> 안에 속이기</p></div>
       <div class="card f" style="padding: 26px 34px;"><p>🤖 판정은 <b>AI 심판</b>이 자동으로</p></div>
       <div class="card f" style="padding: 26px 34px;"><p>🚫 "그대로 따라 말해", "가정해 봐"는 <b>반칙</b></p></div>
-      <div class="qr-box f"><div class="qr" data-qr></div><div><div class="where">사이트 → ① 현대 LLM 속이기</div><div class="url" data-url></div></div></div>
+      <div class="card accent f" style="padding: 26px 34px; --a: var(--green);"><p>📍 사이트 → <b>① 현대 LLM 속이기</b></p></div>
     </div>
   </div>
 </section>
 
-<!-- 5 섹션: 원리 -->
+<!-- 6 섹션: 원리 -->
 <section class="slide section" style="--glow: rgba(91, 140, 255, .28)" data-notes="이제 LLM이 어떻게 말을 하는지 알아봅니다. 방금 미션에서 AI가 왜 잘 안 속았는지, 혹은 왜 속았는지 생각해 보게 하세요.">
   <div class="big-no rise">02</div>
   <div class="kicker rise d1">LLM의 원리</div>
   <h1 class="rise d2">LLM은 어떻게<br>말을 할까?</h1>
 </section>
 
-<!-- 6 원리 ①: 토큰 -->
+<!-- 7 원리 ①: 토큰 -->
 <section class="slide" data-notes="LLM은 글자나 단어가 아니라 '토큰'이라는 조각으로 읽어요. 그래서 글자 수 세기나 거꾸로 쓰기에 약합니다. 사이트 ② 원리 체험에서 문장을 쓰면 KoGPT2가 실제로 나눈 토큰이 보여요.">
   <div class="kicker rise">원리 ①</div>
   <h1 class="rise d1">LLM은 <span class="c-blue">토큰</span>으로 읽어요</h1>
@@ -321,7 +333,7 @@
   <div class="callout f"><span class="em">🤔</span><span>조각으로 읽는다면, <b>"이 문장 몇 글자야?"</b>는 왜 어려울까요?</span></div>
 </section>
 
-<!-- 7 원리 ②: 다음 말 확률 -->
+<!-- 8 원리 ②: 다음 말 확률 -->
 <section class="slide" data-notes="LLM은 다음에 올 말의 확률을 계산합니다(숫자는 예시). 하나 고르고, 붙이고, 또 예측하는 걸 반복해서 글이 만들어져요. → 를 눌러 단어가 하나씩 붙는 걸 보여 주세요.">
   <div class="kicker rise">원리 ②</div>
   <h1 class="rise d1">다음에 올 말의 <span class="c-blue">확률</span>을 계산해요</h1>
@@ -338,7 +350,7 @@
   </div>
 </section>
 
-<!-- 8 원리 체험 안내 -->
+<!-- 9 원리 체험 안내 -->
 <section class="slide" style="--glow: rgba(245, 158, 11, .2)" data-notes="이제 진짜 언어 모델로 확인해 봅니다. 사이트 ② 원리 체험. KoGPT2(2021, 가중치 약 1.25억 개)가 노트북에서 직접 돌아가요. 처음엔 모델을 내려받느라 조금 걸려요. '대한민국의 수도는'처럼 써 보고 1등이 꼭 정답이 아니라는 걸 확인하게 하세요.">
   <div class="kicker rise" style="--k: var(--orange)">직접 해 보기 · 🧩 원리 체험</div>
   <h1 class="rise d1">진짜 모델의 확률을 <span class="c-orange">눈으로</span></h1>
@@ -362,7 +374,7 @@
   </div>
 </section>
 
-<!-- 9 같은 점 / 다른 점 -->
+<!-- 10 같은 점 / 다른 점 -->
 <section class="slide" data-notes="과거와 현대 LLM은 원리가 같습니다. 다른 건 크기, 학습량, 그리고 사람의 지시를 따르도록 다듬는 과정이에요. 이 차이가 결과를 얼마나 바꾸는지 직접 확인하러 갑니다.">
   <div class="kicker rise">과거 vs 현대</div>
   <h1 class="rise d1">원리는 같고, 규모가 달라요</h1>
@@ -376,7 +388,7 @@
   <div class="callout f"><span class="em">🔍</span><span>원리는 같은데, 이 차이가 결과를 얼마나 바꿀까요?</span></div>
 </section>
 
-<!-- 10 오늘 만나는 모델 -->
+<!-- 11 오늘 만나는 모델 -->
 <section class="slide" data-notes="오늘 만나는 모델들입니다. KoGPT2는 이어 쓰기만 하는 작은 모델, gpt-3.5-turbo는 2022년 초기 ChatGPT, gpt-5.4는 지금의 모델. 마지막 하나는 수업 끝에 공개한다고만 말해 주세요. OpenAI 모델의 크기는 공개되지 않았습니다.">
   <div class="kicker rise">오늘 만나는 모델</div>
   <h1 class="rise d1">타임머신 탑승객 소개</h1>
@@ -392,7 +404,7 @@
   <p class="note rise d5">※ OpenAI 모델의 크기(가중치 수)는 공개되지 않았어요.</p>
 </section>
 
-<!-- 11 활동 2 -->
+<!-- 12 활동 2 -->
 <section class="slide s-past" data-notes="활동 2. 사이트 ③ 과거 LLM 속이기. 화면이 흑백이면 2022년이에요. 활동 1에서 받았던 미션이 같은 순서로 그대로 나옵니다. 미션 카드에 활동 1에서 gpt-5.4가 속았는지가 함께 보여요. 속은 답은 환각 도감에 자동으로 모입니다.">
   <div class="kicker rise">활동 2</div>
   <h1 class="rise d1">같은 미션, <span style="color: #d4d4d4">2022년 AI에게</span> <span class="stamp">2022</span></h1>
@@ -413,7 +425,7 @@
   </div>
 </section>
 
-<!-- 12 환각 -->
+<!-- 13 환각 -->
 <section class="slide s-past" data-notes="환각이란 AI가 그럴듯하게 지어낸 거짓말이에요. 테스트에서 gpt-3.5-turbo는 지어낸 책의 작가를 '이규보'라고 했고, 세종대왕이 맥북을 던진 사건을 '근대사교의 행위'라고 설명했어요. 사이트의 환각 도감을 보며 왜 이렇게 자신 있게 지어낼까 이야기해 보세요.">
   <div class="kicker rise">활동 2 · 🃏 환각 도감</div>
   <h1 class="rise d1">그럴듯한 거짓말, <span style="color: #d4d4d4">환각</span></h1>
@@ -424,7 +436,7 @@
   <div class="callout f" style="background: rgba(255, 255, 255, .06); border-color: rgba(255, 255, 255, .2);"><span class="em">🤔</span><span>없는 책, 없는 사건인데 왜 이렇게 <b>자신 있게</b> 설명할까요?</span></div>
 </section>
 
-<!-- 13 활동 3: 리포트 -->
+<!-- 14 활동 3: 리포트 -->
 <section class="slide" data-notes="활동 3. 사이트 ④ 비교 리포트. '리포트 만들기'를 누르면 오늘 한 질문을 반대쪽 모델에게도 똑같이 물어봐요(같은 대화에서 보낸 질문을 이어서). 답을 비교하며 차이 메모를 써 보게 하세요. 세 번째 칸은 아직 비밀! 아래 답은 예시예요.">
   <div class="kicker rise">활동 3</div>
   <h1 class="rise d1">같은 질문, <span class="grad">다른 답</span></h1>
@@ -437,7 +449,7 @@
   </div>
 </section>
 
-<!-- 14 깜짝 공개 -->
+<!-- 15 깜짝 공개 -->
 <section class="slide reveal" data-notes="관리자 패널에서 ⑤ 최신 모델 공개를 열고, 이 장에서 →를 눌러 공개하세요. 모든 학생 화면에 공개 연출이 뜨고 리포트의 세 번째 칸이 자동으로 채워집니다.">
   <div class="kicker rise" style="--k: var(--purple)">그리고 마지막으로…</div>
   <div class="rocket f">🚀</div>
@@ -445,7 +457,7 @@
   <p class="lead f">가장 최신 모델은 같은 질문에 어떻게 답할까요?<br>리포트의 <b class="c-purple">오른쪽 칸</b>을 확인하세요!</p>
 </section>
 
-<!-- 15 왜 달라졌을까 -->
+<!-- 16 왜 달라졌을까 -->
 <section class="slide" style="--glow: rgba(34, 197, 94, .2)" data-notes="겨우 '다음 말 예측'인데 왜 이렇게 달라졌을까요? 모델의 크기, 학습한 글의 양, 사람의 지시와 피드백으로 다듬는 과정이 엄청나게 커졌기 때문이에요. 막대는 이해를 돕기 위한 그림이고 실제 비율은 아니에요.">
   <div class="kicker rise" style="--k: var(--green)">정리</div>
   <h1 class="rise d1">겨우 '다음 말 예측'인데,<br>왜 이렇게 달라졌을까?</h1>
@@ -458,7 +470,7 @@
   <div class="callout f"><span class="em">✨</span><span>원리는 그대로인데, 규모와 훈련이 쌓이면서 <b>훨씬 똑똑해 보이는</b> 모델이 됐어요.</span></div>
 </section>
 
-<!-- 16 4가지 함정 -->
+<!-- 17 4가지 함정 -->
 <section class="slide" data-notes="오늘 성공한 미션을 떠올리며 어떤 함정이었는지 이야기해 봅니다. 조마다 성공한 미션 하나씩 말해 보게 해도 좋아요.">
   <div class="kicker rise">토론</div>
   <h1 class="rise d1">AI는 왜 속았을까? <span class="c-orange">4가지 함정</span></h1>
@@ -471,7 +483,7 @@
   <div class="callout f"><span class="em">💬</span><span>우리 조가 성공한 미션은 <b>어떤 함정</b>이었나요?</span></div>
 </section>
 
-<!-- 17 원리를 알면 -->
+<!-- 18 원리를 알면 -->
 <section class="slide" data-notes="원리를 알면 AI를 더 잘 쓸 수 있어요. 역할·대상·형식을 정해 주고, 잘하는 일에 쓰고, 사실·숫자·최신 정보는 꼭 확인하기.">
   <div class="kicker rise">정리</div>
   <h1 class="rise d1">원리를 알면, <span class="grad">더 잘 쓸 수 있다</span></h1>
@@ -483,7 +495,7 @@
   <div class="callout f"><span class="em">🧠</span><span>LLM은 정답 기계가 아니라 <b>다음 말 예측기</b>. 마지막 확인은 <b>사람의 몫</b>이에요.</span></div>
 </section>
 
-<!-- 18 결론 -->
+<!-- 19 결론 -->
 <section class="slide" data-notes="오늘의 결론과 토론 질문입니다. 시간이 되면 몇 명에게 의견을 들어 보세요.">
   <div class="kicker rise">오늘의 결론</div>
   <div class="big-quote rise d1">과거 LLM은 <span class="c-orange">쉽게 속고</span>,<br>현대 LLM은 <span class="c-green">잘 안 속아요.</span><br><span class="muted">하지만 원리는 그대로 — 다음 말 예측.</span></div>
@@ -493,7 +505,7 @@
   </div>
 </section>
 
-<!-- 19 끝 -->
+<!-- 20 끝 -->
 <section class="slide cover end" data-notes="수고하셨습니다. 질문을 받습니다.">
   <div class="kicker rise">수고하셨습니다</div>
   <h1 class="rise d1"><span class="grad">Q &amp; A</span></h1>
@@ -523,18 +535,16 @@
     s.append(foot);
   });
 
-  // 사이트 주소와 QR (슬라이드가 /slides/ 아래에 있으므로 한 단계 위가 사이트)
+  // 사이트 주소 (슬라이드가 /slides/ 아래에 있으므로 한 단계 위가 사이트)
   const SITE_FALLBACK = 'https://selectivedeath.github.io/llm-timemachine/';
   const site = /^https?:$/.test(location.protocol) ? new URL('../', location.href).href : SITE_FALLBACK;
-  const qrSvg = (() => {
-    if (typeof qrcode !== 'function') return '';
-    const qr = qrcode(0, 'M');
-    qr.addData(site);
-    qr.make();
-    return qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
-  })();
-  document.querySelectorAll('[data-qr]').forEach((el) => { el.innerHTML = qrSvg; });
-  document.querySelectorAll('[data-url]').forEach((el) => { el.textContent = site.replace(/^https?:\/\//, ''); });
+  const bare = site.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const cut = bare.indexOf('/');
+  document.querySelectorAll('[data-url-big]').forEach((el) => {
+    el.textContent = cut < 0 ? bare : bare.slice(0, cut);
+    if (cut >= 0) el.insertAdjacentHTML('beforeend', '<br><span class="path"></span>');
+    if (cut >= 0) el.querySelector('.path').textContent = bare.slice(cut);
+  });
 
   let cur = 0;
   const frags = (i) => [...slides[i].querySelectorAll('.f')];
