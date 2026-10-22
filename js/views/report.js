@@ -7,11 +7,9 @@ import { store, uid, getMissionStats, missionMessages, questionBefore } from '..
 import { h, add, clear, markdown, confirmDialog, toast, short } from '../ui.js';
 import { chat, ChatError } from '../modern-llm.js';
 import { REPORT_MAX_ITEMS, MODELS } from '../config.js';
-import { TAGS } from './past.js';
 import { gate } from '../gate.js';
 
-const SOURCE_LABEL = { round1: '미션 1라운드', round2: '미션 2라운드', past: '과거 LLM 질문' };
-const TAG_LABEL = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
+const SOURCE_LABEL = { round1: '현대 1라운드', round2: '현대 2라운드', past: '과거 LLM 미션' };
 const PAST_LABEL = `📼 ${MODELS.past.id} · ${MODELS.past.year}`;
 const MODERN_LABEL = `✨ ${MODELS.modern.id} · ${MODELS.modern.year}`;
 const LATEST_LABEL = `🚀 ${MODELS.latest.id} · 최신`;
@@ -51,31 +49,24 @@ const pendingItems = () => items().filter((it) => Object.values(needs(it)).some(
 
 function candidates() {
   const out = [];
-  for (const m of store.state.modern.missions) {
+  // 미션마다: 성공했으면 속은 답과 그 질문, 아니면 마지막 질문과 답
+  for (const m of [...store.state.modern.missions, ...store.state.past.missions]) {
     if (m.status === 'cancel') continue;
     const msgs = missionMessages(m).filter((x) => !x.error && !x.pending);
-    // 성공한 미션은 속은 답과 그 질문, 아니면 마지막 질문과 답
     const ai = (m.winMsgId && msgs.find((x) => x.id === m.winMsgId)) || msgs.filter((x) => x.role === 'assistant').pop();
     if (!ai) continue;
     const q = questionBefore(msgs, msgs.indexOf(ai));
     if (!q) continue;
+    const isPast = m.bucket === 'past';
     out.push({
-      ref: 'm:' + m.id, source: m.round === 2 ? 'round2' : 'round1', question: q.content, mission: m.title,
-      oldAnswer: null, modernAnswer: ai.content, success: m.status === 'success', tags: [], best: false,
-      priority: (m.status === 'success' ? 3 : 1) + m.ts / 1e15,
+      ref: 'm:' + m.id, source: isPast ? 'past' : m.round === 2 ? 'round2' : 'round1', question: q.content, mission: m.title,
+      oldAnswer: isPast ? ai.content : null, modernAnswer: isPast ? null : ai.content,
+      side: isPast ? 'old' : 'new', success: m.status === 'success',
+      // 현대 LLM은 안 속었는데 과거 LLM은 속은 미션이 가장 인상적인 비교
+      best: isPast && m.status === 'success' && m.modernResult === 'fail',
+      priority: (isPast && m.status === 'success' ? (m.modernResult === 'fail' ? 5 : 3) : m.status === 'success' ? 3 : 1) + m.ts / 1e15,
     });
   }
-  const past = store.state.past.messages;
-  past.forEach((a, i) => {
-    if (a.role !== 'assistant' || a.error || a.pending) return;
-    const q = questionBefore(past, i);
-    if (!q) return;
-    out.push({
-      ref: 'p:' + a.id, source: 'past', question: q.content,
-      oldAnswer: a.content, modernAnswer: null, success: null, tags: a.tags ?? [], best: !!a.best,
-      priority: (a.best ? 5 : a.tags?.length ? 3 : 1) + a.ts / 1e15,
-    });
-  });
   // 같은 질문이 여러 번 있으면 우선순위가 높은 하나만
   const seen = new Set();
   return out.sort((a, b) => b.priority - a.priority).filter((c) => {
@@ -90,7 +81,7 @@ function toItem(c, prev) {
   return {
     id: prev?.id ?? uid(), ref: c.ref, source: c.source, question: c.question, mission: c.mission ?? null,
     oldAnswer: prev?.oldAnswer ?? c.oldAnswer, modernAnswer: prev?.modernAnswer ?? c.modernAnswer, latestAnswer: prev?.latestAnswer ?? null,
-    success: c.success, tags: c.tags, best: c.best,
+    side: c.side, success: c.success, best: c.best,
     memo: prev?.memo ?? '', present: prev?.present ?? false, oldError: null, modernError: null, latestError: null,
   };
 }
@@ -194,7 +185,7 @@ function render() {
 
 function intro() {
   const cands = candidates();
-  const fromMissions = cands.filter((c) => c.source !== 'past').length;
+  const fromMissions = cands.filter((c) => c.source !== 'past').length; // 현대 LLM 미션에서 나온 질문
   return h('div.card.report-intro',
     h('div.big', '⚖️'),
     h('h2', '오늘의 질문으로 리포트를 만들어요'),
@@ -207,17 +198,12 @@ function intro() {
 function summary() {
   const s = store.state;
   const asked = s.modern.messages.filter((m) => m.role === 'user').length + s.past.messages.filter((m) => m.role === 'user').length;
-  const pastAnswers = s.past.messages.filter((m) => m.role === 'assistant' && !m.error);
-  const pretend = pastAnswers.filter((m) => m.tags?.includes('pretend')).length;
-  const [r1, r2] = getMissionStats();
-  const best = pastAnswers.find((m) => m.best);
+  const { r1, past, r2 } = getMissionStats();
   return h('div.summary',
     h('div.sum-card', h('span.sum-label', '던진 질문'), h('b.sum-num', asked), h('span.sum-sub', '개')),
-    h('div.sum-card.old', h('span.sum-label', `📼 ${MODELS.past.id} 환각`), h('b.sum-num', pretend), h('span.sum-sub', `/ ${pastAnswers.length}개 답에서 "아는 척"`)),
-    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id} 속이기 성공`),
-      h('b.sum-num', `${r1.success} → ${r2.success}`), h('span.sum-sub', `1라운드 미션 ${r1.played}개 중 → 2라운드 ${r2.played}개 중`)),
-    best && h('div.sum-card.best', h('span.sum-label', '🏆 가장 그럴듯한 거짓말'),
-      h('b.sum-quote', `“${short(best.content, 70)}”`)));
+    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id} 1라운드`), h('b.sum-num', `${r1.points}점`), h('span.sum-sub', `미션 ${r1.played}개 중 ${r1.success}개 속음`)),
+    h('div.sum-card.old', h('span.sum-label', `📼 ${MODELS.past.id} (같은 미션)`), h('b.sum-num', `${past.points}점`), h('span.sum-sub', `미션 ${past.played}개 중 ${past.success}개 속음`)),
+    h('div.sum-card.new', h('span.sum-label', `✨ ${MODELS.modern.id} 2라운드`), h('b.sum-num', `${r2.points}점`), h('span.sum-sub', `미션 ${r2.played}개 중 ${r2.success}개 속음`)));
 }
 
 function compareCard(it) {
@@ -242,14 +228,16 @@ function compareCard(it) {
       h('div.cmp-old',
         h('div.cmp-label', PAST_LABEL),
         sideBody(it.oldAnswer, it.oldError, it.id),
-        it.tags?.length > 0 && h('div.cmp-tags', it.tags.map((t) => h('span.tag.old', TAG_LABEL[t])))),
+        it.side === 'old' && resultTag(it.success)),
       h('div.cmp-new',
         h('div.cmp-label', MODERN_LABEL),
         sideBody(it.modernAnswer, it.modernError, it.id),
-        it.success != null && h('div.cmp-tags', h('span.tag' + (it.success ? '.old' : '.new'), it.success ? '😈 미션 성공 (속았다)' : '🤖 미션 실패 (안 속았다)'))),
+        it.side === 'new' && resultTag(it.success)),
       revealed() && h('div.cmp-latest', h('div.cmp-label', LATEST_LABEL), sideBody(it.latestAnswer, it.latestError, it.id))),
     memo);
 }
+
+const resultTag = (success) => h('div.cmp-tags', h('span.tag' + (success ? '.old' : '.new'), success ? '😈 미션에서 속았다' : '🤖 미션에서 안 속았다'));
 
 function sideBody(answer, error, id) {
   if (error) return h('div.cmp-error', '⚠️ ', error, ' ', h('button.btn.btn-sm', { onclick: () => retry(id) }, '다시 시도'));

@@ -120,3 +120,14 @@
 .cmp-latest .cmp-label { color: #7c3aed; }
 .present-grid .cmp-latest { color: var(--ink); font-size: clamp(16px, 1.4vw, 22px); padding: 22px 26px; }
 @media (max-width: 1000px) { .cmp.three .cmp-grid { grid-template-columns: 1fr; } }
+
+/* 미션 결과 세 줄 비교 */
+.rounds-grid.three { grid-template-columns: repeat(3, 1fr); }
+.round-pill.r1 { background: var(--blue-soft); color: var(--blue); }
+.round-pill.past { background: #e9e8e4; color: #444; }
+.round-card.past { filter: grayscale(1); background: #f7f6f3; }
+.round-card.past .round-rate { color: #444; }
+.round-card.past .round-bar-fill { background: #777; }
+.round-msg div p + p { margin-top: 6px; }
+@media (max-width: 900px) { .rounds-grid.three { grid-template-columns: 1fr; } }
+.dex-mission { font-size: 12px; font-weight: 700; color: var(--ink-2); }

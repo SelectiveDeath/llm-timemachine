@@ -2,7 +2,7 @@
 // 점수, 환각 도감, 미션 결과는 따로 저장하지 않고 아래 기록에서 매번 계산한다.
 
 const KEY = 'llm-timemachine';
-const VERSION = 2;
+const VERSION = 3;
 
 const fresh = () => ({
   version: VERSION,
@@ -19,9 +19,11 @@ const fresh = () => ({
     missions: [],
   },
   past: {
+    // 현대 LLM과 같은 미션 구조 (과거 LLM에게 1라운드 미션을 다시 도전)
     conv: 1,
-    // { id, conv, role, content, ts, pending?, error?, retry?, tags: [], best: false }
     messages: [],
+    missions: [], // + replayOf: 1라운드 미션 id, modernResult: 'success'|'fail'
+    seen: null,
   },
   principle: { writeText: '', temperature: 1 },
   report: {
@@ -111,14 +113,17 @@ export function questionBefore(messages, index) {
   return null;
 }
 
-export const missionMessages = (mission) => state.modern.messages.filter((m) => m.conv === mission.conv);
+// 미션은 bucket('modern' | 'past')에 따라 현대/과거 기록에 저장된다
+const bucketOf = (mission) => state[mission.bucket ?? 'modern'];
+export const missionMessages = (mission) => bucketOf(mission).messages.filter((m) => m.conv === mission.conv);
 export const missionTries = (mission) => missionMessages(mission).filter((m) => m.role === 'user').length;
-export const activeMission = () => state.modern.missions.find((m) => m.status === 'active' && m.round === state.round) ?? null;
+export const activeMission = (bucket, round) => state[bucket].missions.find((m) => m.status === 'active' && m.round === round) ?? null;
+const finished = (m) => m.status === 'success' || m.status === 'fail';
 
-// 라운드별 점수: 성공한 미션 난이도 합 vs AI 승리(실패한 미션 수)
-export function getScore(round) {
+// 점수: 성공한 미션 난이도 합 vs AI 승리(실패한 미션 수)
+export function getScore(round, bucket = 'modern') {
   let team = 0, ai = 0;
-  for (const m of state.modern.missions) {
+  for (const m of state[bucket].missions) {
     if (m.round !== round) continue;
     if (m.status === 'success') team += m.difficulty;
     else if (m.status === 'fail') ai++;
@@ -126,28 +131,25 @@ export function getScore(round) {
   return { team, ai };
 }
 
+// 미션 결과: 현대 1라운드, 과거 LLM, 현대 2라운드
 export function getMissionStats() {
-  return [1, 2].map((round) => {
-    const done = state.modern.missions.filter((m) => m.round === round && (m.status === 'success' || m.status === 'fail'));
+  const stat = (key, bucket, round) => {
+    const done = state[bucket].missions.filter((m) => m.round === round && finished(m)).sort((a, b) => (a.no ?? 0) - (b.no ?? 0));
     const wins = done.filter((m) => m.status === 'success');
-    return {
-      round,
-      played: done.length,
-      success: wins.length,
-      rate: done.length ? wins.length / done.length : 0,
-      points: wins.reduce((s, m) => s + m.difficulty, 0),
-      missions: done,
-    };
-  });
+    return { key, bucket, round, played: done.length, success: wins.length, rate: done.length ? wins.length / done.length : 0, points: wins.reduce((t, m) => t + m.difficulty, 0), missions: done };
+  };
+  return { r1: stat('r1', 'modern', 1), past: stat('past', 'past', 1), r2: stat('r2', 'modern', 2) };
 }
 
-// 과거 LLM 답 중 관찰 표시가 있는 것 (환각 도감)
+// 환각 도감: 과거 LLM이 미션에서 속아 넘어간 답 모음
 export function getDex() {
   const msgs = state.past.messages;
-  const out = [];
-  msgs.forEach((m, i) => {
-    if (m.role !== 'assistant' || m.error || !(m.tags?.length || m.best)) return;
-    out.push({ ...m, question: questionBefore(msgs, i)?.content ?? '' });
-  });
-  return out.sort((a, b) => (b.best - a.best) || b.ts - a.ts);
+  return state.past.missions
+    .filter((m) => m.status === 'success' && m.winMsgId)
+    .map((m) => {
+      const i = msgs.findIndex((x) => x.id === m.winMsgId);
+      return { mission: m, answer: msgs[i], question: questionBefore(msgs, i)?.content ?? '' };
+    })
+    .filter((c) => c.answer)
+    .sort((a, b) => (b.mission.no ?? 0) - (a.mission.no ?? 0));
 }

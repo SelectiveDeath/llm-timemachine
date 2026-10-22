@@ -32,7 +32,7 @@ export async function mockReply(messages, { era = 'modern', onToken, signal } = 
 export async function mockJudge({ messages }) {
   await sleep(500);
   const answer = messages[messages.length - 1]?.content ?? '';
-  return /17글자|일화는 유명/.test(answer) ? 0.82 : 0.08;
+  return /17글자|일화는 유명|이규보|상징적인 사례/.test(answer) ? 0.82 : 0.08;
 }
 
 function sleep(ms, signal) {

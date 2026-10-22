@@ -65,11 +65,11 @@ function start() {
 // 관리자 패널에 보낼 조 현황 (대화 내용은 보내지 않음)
 function summary() {
   const s = store.state;
+  const all = [...s.modern.missions, ...s.past.missions];
   return {
-    r1: getScore(1).team, r2: getScore(2).team,
-    missions: s.modern.missions.filter((m) => m.status === 'success' || m.status === 'fail').length,
-    wins: s.modern.missions.filter((m) => m.status === 'success').length,
-    past: s.past.messages.filter((m) => m.role === 'user').length,
+    r1: getScore(1).team, past: getScore(1, 'past').team, r2: getScore(2).team,
+    missions: all.filter((m) => m.status === 'success' || m.status === 'fail').length,
+    wins: all.filter((m) => m.status === 'success').length,
     report: s.report.items.length,
   };
 }

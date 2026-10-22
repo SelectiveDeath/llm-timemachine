@@ -141,7 +141,7 @@ function render(offline = false) {
       h('h2', `조별 현황 · 접속 ${online} / ${data.teams.length}조`),
       data.teams.length
         ? h('table.teams',
-          h('thead', h('tr', h('th', '조'), h('th', '접속'), h('th', '보고 있는 화면'), h('th', '미션 성공'), h('th', '점수 1R / 2R'), h('th', '과거 LLM 질문'), h('th', '리포트'))),
+          h('thead', h('tr', h('th', '조'), h('th', '접속'), h('th', '보고 있는 화면'), h('th', '미션 성공 / 전체'), h('th', '점수 현대 1R · 과거 · 현대 2R'), h('th', '리포트'))),
           h('tbody', data.teams.map((t) => {
             const s = t.summary || {};
             return h('tr' + (t.online ? '' : '.away'),
@@ -149,8 +149,7 @@ function render(offline = false) {
               h('td', h('span.dot' + (t.online ? '.on' : '')), t.online ? '접속 중' : `${Math.round(t.ago / 1000)}초 전`),
               h('td', VIEW_LABEL[t.view] ?? t.view ?? '-'),
               h('td', `${s.wins ?? 0} / ${s.missions ?? 0}`),
-              h('td', `${s.r1 ?? 0}점 / ${s.r2 ?? 0}점`),
-              h('td', `${s.past ?? 0}개`),
+              h('td', `${s.r1 ?? 0} · ${s.past ?? 0} · ${s.r2 ?? 0}점`),
               h('td', s.report ? `${s.report}개 비교` : '-'));
           })))
         : h('p.muted', '아직 접속한 조가 없어요. 학생들이 사이트를 열고 조 이름을 입력하면 여기에 나타나요.')),

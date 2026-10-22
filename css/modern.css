@@ -191,3 +191,5 @@
 .mp-step.lose { background: #eef0f5; font-size: 18px; }
 .round-done .btn { margin-top: 8px; text-decoration: none; }
 .mc-stars small { color: var(--ink-3); font-weight: 600; margin-left: 2px; letter-spacing: 0; }
+.mc-compare { margin: 6px 0 0; font-size: 13px; color: var(--ink-2); }
+.round-pill { white-space: nowrap; }

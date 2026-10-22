@@ -1,42 +1,43 @@
-// 🃏 환각 도감: 과거 LLM(gpt-3.5-turbo)의 답 중 "관찰" 표시한 것들을 카드로 모아 본다.
+// 🃏 환각 도감: 과거 LLM(gpt-3.5-turbo)이 미션에서 속아 넘어간 답을 카드로 모아 본다.
 import { store, getDex } from '../store.js';
 import { h, markdown } from '../ui.js';
 import { MODELS } from '../config.js';
-import { TAGS } from './past.js';
+import { stars } from './mission.js';
 
-const TAG_LABEL = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
+const RESULT = { success: '😈 속았음', fail: '🤖 안 속았음' };
 
 export function mount(el) {
   const cards = getDex();
   const page = h('div.page',
     h('div.page-head',
       h('h1', '🃏 환각 도감'),
-      h('p', `${store.state.team} · 과거 LLM(${MODELS.past.id})에게서 모은 그럴듯한 거짓말들`)));
+      h('p', `${store.state.team} · 과거 LLM(${MODELS.past.id})이 그럴듯하게 지어낸 답들`)));
 
   if (!cards.length) {
     page.append(h('div.card.empty',
       h('div.big', '🃏'),
       h('p', '아직 모은 카드가 없어요.'),
-      h('p', h('a', { href: '#/past' }, '📼 과거 LLM'), '에서 답 아래의 "관찰" 버튼을 누르면 여기에 모여요.')));
+      h('p', h('a', { href: '#/past' }, '📼 과거 LLM'), '에서 미션에 성공하면 AI가 속은 답이 여기에 자동으로 모여요.')));
     el.append(page);
     return;
   }
 
-  const count = (k) => cards.filter((c) => c.tags?.includes(k)).length;
+  const sameAsModern = cards.filter((c) => c.mission.modernResult === 'fail').length;
   page.append(
     h('div.dex-summary',
       h('div.dex-stat', h('b', cards.length), h('span', '모은 카드')),
-      TAGS.map((t) => h('div.dex-stat', h('b', count(t.key)), h('span', t.label)))),
+      h('div.dex-stat', h('b', sameAsModern), h('span', `${MODELS.modern.id}는 안 속은 미션`))),
     h('div.dex-grid', cards.map(card)));
   el.append(page);
 }
 
 export function unmount() {}
 
-function card(c) {
-  return h('article.dex-card' + (c.best ? '.best' : ''),
-    c.best && h('div.dex-ribbon', '🏆 가장 그럴듯한 거짓말'),
-    h('h3.dex-q', 'Q. ', c.question),
-    h('div.dex-answer.md', { html: markdown(c.content) }),
-    h('div.dex-tags', (c.tags ?? []).map((t) => h('span.tag.old', TAG_LABEL[t]))));
+function card({ mission, question, answer }) {
+  return h('article.dex-card' + (mission.modernResult === 'fail' ? '.best' : ''),
+    mission.modernResult === 'fail' && h('div.dex-ribbon', `${MODELS.modern.id}는 안 속은 미션!`),
+    h('div.dex-mission', `🎯 ${mission.no}번 · ${stars(mission.difficulty)} · ${mission.title}`),
+    h('h3.dex-q', 'Q. ', question),
+    h('div.dex-answer.md', { html: markdown(answer.content) }),
+    mission.modernResult && h('div.dex-tags', h('span.tag', `1라운드 ${MODELS.modern.id}: ${RESULT[mission.modernResult]}`)));
 }

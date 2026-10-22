@@ -18,7 +18,6 @@
 }
 .era-past .chat-top { background: transparent; border-bottom: 1px solid #d6d4cf; }
 .era-past .chat-title b { color: #3b3b3b; }
-.era-past .era-note { font-size: 12px; color: #8a8a8a; }
 .era-past .model-chip { background: #e2e0db; border-radius: 2px; }
 .era-past .msg-body, .era-past .bubble { text-shadow: 0 0 .4px rgba(0, 0, 0, .35); }
 .era-past .msg.user .bubble { background: #e4e2dd; border-radius: 6px; }
@@ -27,21 +26,6 @@
 .era-past .send-btn { border-radius: 4px; background: #555; }
 .era-past .btn { border-radius: 4px; background: #f7f6f3; }
 .era-past .chat-empty h2 { color: #3b3b3b; }
-
-/* 짝 질문 예시 */
-.pairs { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; text-align: left; }
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.pair-chip { text-align: left; border: 1px solid #cfcdc8; background: #faf9f6; border-radius: 4px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #3b3b3b; }
-.pair-chip:hover { background: #fff; border-color: #999; }
-.pair-chip small { display: block; font-size: 11px; font-weight: 700; color: #888; }
-.pair-chip.fake small { text-decoration: underline; }
-
-/* 관찰 버튼 */
-.observe { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
-.obs-btn, .obs-tag { border: 1px solid #cfcdc8; background: #faf9f6; border-radius: 3px; padding: 3px 10px; font-size: 12px; cursor: pointer; color: #444; }
-.obs-btn:hover, .obs-tag:hover { border-color: #888; }
-.obs-label { font-size: 12px; color: #888; margin-left: 6px; }
-.obs-tag.on { background: #444; border-color: #444; color: #fff; font-weight: 700; }
-.retry-badge { display: inline-block; font-size: 11px; color: #777; border: 1px dashed #bbb; padding: 0 6px; margin-bottom: 4px; }
-
-@media (max-width: 760px) { .pair { grid-template-columns: 1fr; } }
+.era-note { font-size: 12px; color: #8a8a8a; }
+.era-past .btn-primary { background: #444; border-color: #444; color: #fff; }
+.era-past .btn-primary:hover { background: #333; }
