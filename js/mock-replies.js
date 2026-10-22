@@ -48,6 +48,14 @@ export async function mockReply(messages, { onToken, signal } = {}) {
   return out;
 }
 
+// mock 모드 AI 심판: 가짜 답변 문구를 보고 그럴듯한 확률을 만든다.
+export async function mockJudge({ answer }) {
+  await sleep(500);
+  if (/정보가 없|알지 못해|확인할 수 있는/.test(answer)) return { fooled: 0.06, unknown: 0.86, correct: 0.08 };
+  if (/17글자|3,481,927|일화는 유명/.test(answer)) return { fooled: 0.78, unknown: 0.04, correct: 0.18 };
+  return { fooled: 0.12, unknown: 0.1, correct: 0.78 };
+}
+
 function sleep(ms, signal) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(signal.reason ?? new DOMException('Aborted', 'AbortError'));

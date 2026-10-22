@@ -1,9 +1,9 @@
 // ✨ 2026 화면: 현대 LLM 속이기 1라운드(활동 1), 2라운드(활동 3)
 import { store, uid, getScore } from '../store.js';
 import { h, add, clear, markdown, promptDialog, toast, autoGrow } from '../ui.js';
-import { chat, ChatError } from '../modern-llm.js';
+import { chat, judge, ChatError } from '../modern-llm.js';
 import { ROUND2_CODE } from '../config.js';
-import { countText, calc } from '../checker.js';
+import { countText, calc, factsFor } from '../checker.js';
 
 const VERDICTS = [
   { key: 'fooled', label: '😈 속았다', point: '우리 +1' },
@@ -33,6 +33,7 @@ const STRATEGIES = [
 let root, bodyEl, listEl, composer, input, sendBtn, scoreEl, panelEl;
 let controller = null; // 답변 중이면 AbortController
 let unsub;
+const judging = new Set(); // AI 심판이 판정 중인 메시지 id
 
 export function mount(el) {
   // 새로고침 등으로 끊긴 답변 정리
@@ -46,6 +47,14 @@ export function mount(el) {
   el.append(root);
   render();
   unsub = store.subscribe(() => renderTop());
+  // 새로고침 등으로 판정을 못 받은 답은 다시 판정
+  judgeMissing();
+}
+
+async function judgeMissing() {
+  for (const m of currentMessages()) {
+    if (m.role === 'assistant' && !m.error && !m.pending && !m.judge && !m.judgeError) await runJudge(m.id);
+  }
 }
 
 export function unmount() {
@@ -147,8 +156,62 @@ function messageEl(m) {
   else body.innerHTML = markdown(m.content);
   const el = h('div.msg.assistant', { 'data-id': m.id },
     h('div.avatar', '✨'),
-    h('div.msg-main', body, !m.error && !m.pending && verdictBar(m)));
+    h('div.msg-main', body, !m.error && !m.pending && [verdictBar(m), judgeLine(m)]));
   return el;
+}
+
+// 🤖 AI 심판 의견 (점수에는 반영되지 않음)
+const JUDGE_CHIPS = [['fooled', '😈 속았다'], ['unknown', '🙋 모른다고 함'], ['correct', '✅ 정확함']];
+
+function judgeLine(m) {
+  const label = h('span.judge-label', '🤖 AI 심판 의견');
+  if (m.judgeError) {
+    return h('div.judge', label, h('span.judge-wait', '판정하지 못했어요 '),
+      h('button.link', { onclick: () => { patchMsg(m.id, { judgeError: null }); runJudge(m.id); } }, '다시 시도'));
+  }
+  if (!m.judge) return h('div.judge', label, h('span.judge-wait', '판정하는 중…'));
+  const top = JUDGE_CHIPS.reduce((a, b) => (m.judge[b[0]] > m.judge[a[0]] ? b : a))[0];
+  const disagree = m.verdict && m.verdict !== top;
+  return h('div.judge', label,
+    JUDGE_CHIPS.map(([k, text]) => h('span.jchip.' + k + (k === top ? '.top' : ''), text, ' ', h('b', Math.round(m.judge[k] * 100) + '%'))),
+    disagree
+      ? h('span.judge-note.disagree', '우리 판정과 달라요! 누가 맞을까요?')
+      : h('span.judge-note', '점수는 여러분의 판정만 반영돼요'));
+}
+
+function patchMsg(id, patch) {
+  store.update((st) => {
+    const m = st.modern.messages.find((x) => x.id === id);
+    if (m) Object.assign(m, patch);
+  }, { silent: true });
+}
+
+function refreshJudge(id) {
+  const m = s().modern.messages.find((x) => x.id === id);
+  const old = listEl?.querySelector(`[data-id="${id}"] .judge`);
+  if (m && old) old.replaceWith(judgeLine(m));
+}
+
+async function runJudge(id) {
+  if (judging.has(id)) return;
+  const msgs = s().modern.messages;
+  const i = msgs.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const m = msgs[i];
+  let q = null;
+  for (let j = i - 1; j >= 0; j--) if (msgs[j].role === 'user' && msgs[j].conv === m.conv) { q = msgs[j]; break; }
+  if (!q) return;
+  judging.add(id);
+  refreshJudge(id);
+  try {
+    const probs = await judge({ question: q.content, answer: m.content, facts: factsFor(q.content) });
+    patchMsg(id, { judge: probs, judgeError: null });
+  } catch {
+    patchMsg(id, { judgeError: true });
+  } finally {
+    judging.delete(id);
+    refreshJudge(id);
+  }
 }
 
 function verdictBar(m) {
@@ -168,6 +231,7 @@ function setVerdict(id, key) {
   const m = s().modern.messages.find((x) => x.id === id);
   const old = listEl.querySelector(`[data-id="${id}"] .verdicts`);
   old?.replaceWith(verdictBar(m));
+  refreshJudge(id);
   if (m.verdict === 'fooled') toast('😈 속였다! 우리 조 +1점');
 }
 
@@ -204,6 +268,7 @@ async function send() {
     });
     acc = full || acc;
     finish(botMsg.id, { content: acc || '(빈 답변)' });
+    runJudge(botMsg.id);
   } catch (err) {
     if (err.name === 'AbortError' && acc) finish(botMsg.id, { content: acc + '\n\n*(중간에 멈춤)*' });
     else finish(botMsg.id, { content: err instanceof ChatError ? err.message : '답변을 받지 못했어요. 다시 보내 주세요.', error: true });

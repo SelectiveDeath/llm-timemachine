@@ -7,6 +7,12 @@
 //  - ENABLED:         "false"로 바꾸면 모든 요청 거절 (수업 후 끄기용)
 // 비밀값
 //  - OPENAI_API_KEY
+//
+// 요청 종류
+//  - { messages: [...] }                     → 채팅 (스트리밍)
+//  - { judge: { question, answer, facts } }  → AI 심판 판정 (확률 JSON)
+
+import { judgeRequest, parseJudge, JUDGE_LIMITS } from '../js/judge.js';
 
 const LIMITS = {
   maxMessages: 21,        // 사이트는 최근 20개 + 새 질문을 보낸다
@@ -35,6 +41,8 @@ export default {
     } catch {
       return json({ error: '요청 형식이 올바르지 않아요.' }, 400, cors);
     }
+
+    if (body?.judge) return handleJudge(body.judge, env, cors);
 
     // 사이트가 보내는 형식만 통과: [{ role: 'user'|'assistant', content: string }]
     const messages = Array.isArray(body?.messages) ? body.messages : null;
@@ -72,6 +80,22 @@ export default {
     });
   },
 };
+
+async function handleJudge(j, env, cors) {
+  const ok = (v, max) => typeof v === 'string' && v.length <= max;
+  if (!ok(j.question, JUDGE_LIMITS.question) || !ok(j.answer, JUDGE_LIMITS.answer) || (j.facts != null && !ok(j.facts, JUDGE_LIMITS.facts))) {
+    return json({ error: '판정 요청 형식이 올바르지 않아요.' }, 400, cors);
+  }
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(judgeRequest(env.MODEL || 'gpt-5.4-mini', j)),
+  });
+  if (!res.ok) return json({ error: 'upstream' }, res.status === 429 ? 429 : 502, cors);
+  const probs = parseJudge(await res.json());
+  if (!probs) return json({ error: '판정 결과를 읽지 못했어요.' }, 502, cors);
+  return json({ probs }, 200, cors);
+}
 
 function json(data, status, headers) {
   return new Response(JSON.stringify(data), { status, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' } });

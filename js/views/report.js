@@ -39,7 +39,7 @@ function candidates() {
     if (!a.question.trim()) return;
     out.push({
       ref: 'm:' + a.id, source: a.round === 2 ? 'round2' : 'round1', question: a.question,
-      oldAnswer: null, modernAnswer: a.answer, verdict: a.verdict, tags: [],
+      oldAnswer: null, modernAnswer: a.answer, verdict: a.verdict, judge: a.judge, tags: [],
       priority: (a.verdict === 'fooled' ? 3 : a.verdict ? 2 : 0) + i / 1e6,
     });
   });
@@ -65,7 +65,7 @@ function toItem(c, prev) {
   return {
     id: prev?.id ?? uid(), ref: c.ref, source: c.source, question: c.question,
     oldAnswer: prev?.oldAnswer ?? c.oldAnswer, modernAnswer: prev?.modernAnswer ?? c.modernAnswer,
-    verdict: c.verdict, tags: c.tags, kind: c.kind ?? null, best: !!c.best,
+    verdict: c.verdict, judge: c.judge ?? null, tags: c.tags, kind: c.kind ?? null, best: !!c.best,
     memo: prev?.memo ?? '', present: prev?.present ?? false, oldError: null, modernError: null,
   };
 }
@@ -232,8 +232,15 @@ function compareCard(it) {
       h('div.cmp-new',
         h('div.cmp-label', '✨ GPT · 2026'),
         sideBody(it.modernAnswer, it.modernError, it.id, true),
-        it.verdict && h('div.cmp-tags', h('span.tag' + (it.verdict === 'fooled' ? '.old' : '.new'), '판정: ', VERDICT_LABEL[it.verdict])))),
+        (it.verdict || it.judge) && h('div.cmp-tags',
+          it.verdict && h('span.tag' + (it.verdict === 'fooled' ? '.old' : '.new'), '우리 판정: ', VERDICT_LABEL[it.verdict]),
+          it.judge && judgeTag(it.judge)))),
     memo);
+}
+
+function judgeTag(j) {
+  const [k, p] = Object.entries(j).sort((x, y) => y[1] - x[1])[0];
+  return h('span.tag', '🤖 AI 심판: ', VERDICT_LABEL[k], ' ', Math.round(p * 100) + '%');
 }
 
 function sideBody(answer, error, id, isModern) {

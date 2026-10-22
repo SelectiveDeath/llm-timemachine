@@ -107,3 +107,5 @@
 .wins li { display: flex; gap: 10px; align-items: flex-start; }
 .win-answer { margin: 2px 0 0; color: var(--ink-2); font-size: 14px; }
 @media (max-width: 760px) { .rounds-grid { grid-template-columns: 1fr; } }
+.disagree-card { margin-bottom: 16px; border-left: 4px solid #7c3aed; }
+.disagree-card .muted { margin: -6px 0 12px; }

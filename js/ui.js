@@ -39,7 +39,9 @@ export const clear = (el) => { el.replaceChildren(); return el; };
 export const add = (el, ...children) => { append(el, children); return el; };
 
 export function markdown(text) {
-  return DOMPurify.sanitize(marked.parse(text || ''));
+  // **『제목』** 처럼 굵게 표시가 한국어 문장부호에 붙으면 마크다운 규칙상 인식되지 않아서 직접 바꿔 준다
+  const fixed = (text || '').replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+  return DOMPurify.sanitize(marked.parse(fixed));
 }
 
 export function toast(message, ms = 2400) {

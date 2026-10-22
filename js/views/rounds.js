@@ -21,6 +21,7 @@ export function mount(el) {
   add(page,
     h('div.rounds-grid', roundCard(r1, '원리를 모르고 도전'), roundCard(r2, '원리로 약점 공략')),
     message(r1, r2),
+    disagreeList([...r1.disagree, ...r2.disagree]),
     winsList([...r1.wins, ...r2.wins]));
   el.append(page);
 }
@@ -48,6 +49,23 @@ function message(r1, r2) {
       ? '두 라운드 성공률이 같아요. 현대 LLM은 생각보다 잘 안 속죠? 그래도 약점은 남아 있어요.'
       : `2라운드 성공률이 ${-diff}%p 낮아요. 현대 LLM이 그만큼 많이 발전했다는 뜻이기도 해요.`;
   return h('div.card.round-msg', h('span', '💡'), h('p', text));
+}
+
+const VERDICT_TEXT = { fooled: '😈 속았다', unknown: '🙋 모른다고 함', correct: '✅ 정확함' };
+
+function disagreeList(list) {
+  if (!list.length) return null;
+  const topOf = (j) => Object.entries(j).sort((x, y) => y[1] - x[1])[0];
+  return h('div.card.wins.disagree-card',
+    h('h3', `🤖 AI 심판과 의견이 달랐던 판정 ${list.length}개`),
+    h('p.muted', 'AI 심판도 AI예요. 누가 맞았는지 정답 확인기로 확인하고 토론해 보세요.'),
+    h('ul', list.map((a) => {
+      const [k, p] = topOf(a.judge);
+      return h('li',
+        h('span.round-pill.r' + a.round, `${a.round}R`),
+        h('div', h('b', a.question || '(질문 없음)'),
+          h('p.win-answer', `우리: ${VERDICT_TEXT[a.verdict]} · AI 심판: ${VERDICT_TEXT[k]} ${Math.round(p * 100)}%`)));
+    })));
 }
 
 function winsList(wins) {

@@ -1,6 +1,7 @@
 // 현대 LLM(OpenAI GPT) 호출. config.js의 MODERN.mode에 따라 연결 방식이 바뀐다.
 import { MODERN } from './config.js';
-import { mockReply } from './mock-replies.js';
+import { mockReply, mockJudge } from './mock-replies.js';
+import { judgeRequest, parseJudge } from './judge.js';
 
 const DEV_KEY = 'llm-timemachine:dev'; // direct 모드 전용, 개발자 브라우저에만 저장
 
@@ -59,6 +60,41 @@ export async function chat(messages, { onToken, signal } = {}) {
   if (!res.ok) throw new ChatError(errorMessage(res.status, await res.text().catch(() => '')));
 
   return readStream(res, onToken);
+}
+
+// AI 심판: { fooled, unknown, correct } 확률 (합 1)
+export async function judge({ question, answer, facts }) {
+  const mode = currentMode();
+  const payload = { question: question.slice(0, 4000), answer: answer.slice(0, 8000), ...(facts ? { facts } : {}) };
+  if (mode === 'mock') return mockJudge(payload);
+
+  let res;
+  try {
+    if (mode === 'direct') {
+      const { key, model } = getDevSettings();
+      res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+        body: JSON.stringify(judgeRequest(model, payload)),
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) throw new ChatError(errorMessage(res.status, await res.text()));
+      const probs = parseJudge(await res.json());
+      if (!probs) throw new ChatError('판정 결과를 읽지 못했어요.');
+      return probs;
+    }
+    res = await fetch(MODERN.workerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ judge: payload }),
+      signal: AbortSignal.timeout(30000),
+    });
+  } catch (err) {
+    if (err instanceof ChatError) throw err;
+    throw new ChatError('AI 심판에 연결하지 못했어요.');
+  }
+  if (!res.ok) throw new ChatError(errorMessage(res.status, await res.text().catch(() => '')));
+  return (await res.json()).probs;
 }
 
 function errorMessage(status, text) {

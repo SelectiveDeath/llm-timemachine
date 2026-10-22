@@ -10,7 +10,7 @@ AI 동아리 수업 "LLM 타임머신 여행"에서 쓰는 활동 사이트와 �
 
 | 메뉴 | 활동 | 파일 |
 |---|---|---|
-| ✨ 2026 채팅 | 활동 1·3: 현대 LLM 속이기 (1라운드 / 2라운드) | `js/views/modern.js`, `css/modern.css` |
+| ✨ 2026 채팅 | 활동 1·3: 현대 LLM 속이기 (1라운드 / 2라운드), 🤖 AI 심판 의견 | `js/views/modern.js`, `js/judge.js`, `css/modern.css` |
 | 📼 과거 LLM | 활동 2: KoGPT2 같이 쓰기 / 질문하기 | `js/views/retro.js`, `css/retro.css` |
 | ⚖️ 비교 리포트 | 활동 4: 과거 vs 현대 비교 | `js/views/report.js`, `css/report.css` |
 | 🃏 환각 도감 | 활동 2에서 모은 환각 | `js/views/dex.js` |

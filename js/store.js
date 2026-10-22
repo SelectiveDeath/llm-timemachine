@@ -108,7 +108,7 @@ export function getAttempts(round = null) {
     for (let j = i - 1; j >= 0; j--) {
       if (msgs[j].role === 'user' && msgs[j].conv === m.conv) { q = msgs[j]; break; }
     }
-    out.push({ question: q?.content ?? '', answer: m.content, verdict: m.verdict, round: m.round, id: m.id });
+    out.push({ question: q?.content ?? '', answer: m.content, verdict: m.verdict, judge: m.judge ?? null, round: m.round, id: m.id });
   }
   return out;
 }
@@ -126,8 +126,15 @@ export function getRoundStats() {
   return [1, 2].map((round) => {
     const judged = getAttempts(round).filter((a) => a.verdict);
     const fooled = judged.filter((a) => a.verdict === 'fooled');
+    // AI 심판의 1순위 의견과 학생 판정이 다른 경우
+    const disagree = judged.filter((a) => {
+      if (!a.judge) return false;
+      const top = Object.entries(a.judge).sort((x, y) => y[1] - x[1])[0][0];
+      return top !== a.verdict;
+    });
     return {
       round,
+      disagree,
       tries: judged.length,
       fooled: fooled.length,
       rate: judged.length ? fooled.length / judged.length : 0,

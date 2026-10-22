@@ -23,6 +23,22 @@ export function countText(text, target = '') {
   return { all: chars.length, noSpace: noSpace.length, words, targetCount };
 }
 
+// AI 심판에게 줄 "확인된 사실": 질문 속 인용문의 실제 글자 수, 수식의 실제 계산 결과
+// (심판 AI도 토큰 단위로 읽어서 글자 수를 잘 못 세므로, 사이트가 직접 센 값을 알려 준다)
+export function factsFor(question) {
+  const facts = [];
+  const quote = /["“”'‘’「『]([^"“”'‘’」』]{2,300})["“”'‘’」』]/.exec(question);
+  if (quote && /글자|몇 자|자수|문자/.test(question)) {
+    const r = countText(quote[1]);
+    facts.push(`질문 속 인용문 "${quote[1]}"의 실제 글자 수: 공백 포함 ${r.all}자, 공백 제외 ${r.noSpace}자.`);
+  }
+  const expr = /[\d,.]+(?:\s*[+\-×x*÷/^]\s*[\d,.]+)+/.exec(question.replace(/(\d)\s*x\s*(\d)/g, '$1×$2'));
+  if (expr && /계산|곱|더하|빼|나누|얼마|몇이야|=|×|÷|\*/.test(question)) {
+    try { facts.push(`수식 ${expr[0]}의 정확한 계산 결과: ${calc(expr[0]).text}.`); } catch { /* 수식이 아니면 무시 */ }
+  }
+  return facts.join(' ').slice(0, 600) || null;
+}
+
 // 안전한 계산기 (eval을 쓰지 않음). + - * / % ^ 괄호, ×, ÷, 쉼표 지원
 export function calc(expr) {
   const src = expr.replace(/,/g, '').replace(/×/g, '*').replace(/÷/g, '/').replace(/\*\*/g, '^').trim();
