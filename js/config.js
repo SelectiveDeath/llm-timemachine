@@ -14,9 +14,9 @@ export const OLD_MODEL = {
 //  - direct: 개발자 PC에서만. 주소 뒤에 ?dev 를 붙이면 키 입력창이 나온다 (키는 그 브라우저에만 저장)
 //  - worker: 수업용. Cloudflare Worker를 거쳐 OpenAI 호출 (키는 Worker에만 있음)
 export const MODERN = {
-  mode: 'mock',
+  mode: 'worker',
   model: 'gpt-5.4-mini', // direct 모드용 (worker 모드에서는 Worker의 MODEL 설정을 씀)
-  workerUrl: '', // 8단계에서 Worker 주소 입력
+  workerUrl: 'https://llm-timemachine.llm-timemachine.workers.dev',
 };
 
 // 속이기 2라운드 잠금 해제 코드 (선생님이 슬라이드 12장에서 공개)
